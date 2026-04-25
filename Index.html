@@ -771,4 +771,371 @@
         <div class="textarea-wrap">
           <textarea id="chat-input" rows="1" placeholder="Ask for a market analysis, portfolio review, trading ideas…"></textarea>
         </div>
-        <button class="sen
+        <button class="send-btn" id="send-btn" disabled title="Send">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Recs pane -->
+    <div id="pane-recs" style="display:none;flex:1;overflow:hidden;">
+      <div class="recs-tab-wrap">
+        <div id="recs-content"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────
+   State
+───────────────────────────────────────────── */
+let holdings = [
+  { ticker: "AAPL", shares: 50, avgCost: 172 },
+  { ticker: "MSFT", shares: 30, avgCost: 385 },
+  { ticker: "SPY",  shares: 20, avgCost: 520 },
+];
+let messages = [];   // { role, content, time, recs? }
+let latestRecs = [];
+let loading = false;
+let activeTab = "chat";
+
+const QUICK_PROMPTS = [
+  "Generate my morning pre-market report",
+  "Give me a midday market update",
+  "Find momentum breakout opportunities",
+  "Review my portfolio for risk concentration",
+  "Top ETF opportunities this week",
+];
+
+const SYSTEM_PROMPT = `You are an advanced AI-powered investment analyst and portfolio manager (Apex Analyst).
+
+ROLE & OBJECTIVE
+Maximize short- to mid-term portfolio growth (1 day to 3 months) using technical analysis, news/sentiment analysis, portfolio-aware decision making, and continuous learning.
+
+MARKET SCOPE
+- US equities, Canadian equities, ETFs (index, sector, thematic)
+- Strictly exclude: market cap < $2B, penny stocks, illiquid assets
+
+STRATEGY PROFILE
+- Time horizon: 1 day to 3 months
+- Risk tolerance: Medium to high
+- Style: Growth + blended (momentum + opportunity-driven)
+
+ANALYSIS REQUIREMENTS
+Each recommendation MUST include:
+1. Technical Indicators: RSI, MACD, 20/50/200-day MAs, volume trends, support/resistance
+2. News & Sentiment: recent catalysts, market sentiment (bullish/bearish/neutral), sector momentum
+3. Contextual Signals: macro factors (rates, CPI), sector rotation
+
+PORTFOLIO INTELLIGENCE
+- Always incorporate current holdings
+- Adjust for sector exposure (max 30% per sector)
+- Track risk concentration
+
+DECISION RULES
+- Only recommend with confidence ≥ 65%
+- Prioritise risk-adjusted returns
+- Flag high-volatility setups
+- Avoid correlated trades
+
+OUTPUT FORMAT
+Max 10 recommendations, ranked by confidence.
+
+SECTION 1 — EXECUTIVE SUMMARY
+Ranked list: Ticker — Action — Confidence% — one-line reason
+
+SECTION 2 — DETAILED ANALYSIS
+For each: Ticker, Company Name, Action (BUY/SELL/HOLD), Confidence %, Entry Price, Target Price, Stop Loss, Holding Period, Technical Summary, Sentiment Summary, Catalyst, Reasoning
+
+TRANSPARENCY NOTE
+You don't have real-time market data. Always state you're working from knowledge up to your training cutoff and that users should verify prices before acting.
+
+STYLE
+Concise, precise, no filler. Every claim grounded in data or signals.
+
+At the very end of your response, append a JSON block (and nothing after it) in this exact format:
+\`\`\`json
+{"recommendations":[{"ticker":"AAPL","name":"Apple Inc.","action":"BUY","confidence":78,"entry":175.00,"target":195.00,"stopLoss":165.00,"holdingPeriod":"4–6 weeks","sentiment":"bullish"}]}
+\`\`\``;
+
+/* ─────────────────────────────────────────────
+   DOM refs
+───────────────────────────────────────────── */
+const holdingsList = document.getElementById("holdings-list");
+const quickList    = document.getElementById("quick-list");
+const emptyState   = document.getElementById("empty-state");
+const emptyChips   = document.getElementById("empty-chips");
+const messagesEl   = document.getElementById("messages");
+const loadingEl    = document.getElementById("loading-indicator");
+const chatWrap     = document.getElementById("chat-wrap");
+const chatInput    = document.getElementById("chat-input");
+const sendBtn      = document.getElementById("send-btn");
+const recsContent  = document.getElementById("recs-content");
+const recsBadge    = document.getElementById("recs-badge");
+const recsTabBtn   = document.getElementById("recs-tab-btn");
+const newTickerEl  = document.getElementById("new-ticker");
+const newSharesEl  = document.getElementById("new-shares");
+const addBtn       = document.getElementById("add-btn");
+const themeToggle  = document.getElementById("theme-toggle");
+const moonIcon     = document.getElementById("theme-icon-moon");
+const sunIcon      = document.getElementById("theme-icon-sun");
+
+/* ─────────────────────────────────────────────
+   Theme
+───────────────────────────────────────────── */
+function setTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  if (t === "dark") { moonIcon.style.display = "block"; sunIcon.style.display = "none"; }
+  else              { moonIcon.style.display = "none";  sunIcon.style.display = "block"; }
+  localStorage.setItem("apex-theme", t);
+}
+
+themeToggle.addEventListener("click", () => {
+  const current = document.documentElement.getAttribute("data-theme");
+  setTheme(current === "dark" ? "light" : "dark");
+});
+
+// Load saved theme
+const savedTheme = localStorage.getItem("apex-theme") || "dark";
+setTheme(savedTheme);
+
+/* ─────────────────────────────────────────────
+   Tabs
+───────────────────────────────────────────── */
+document.querySelectorAll(".tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    activeTab = btn.dataset.tab;
+    document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === activeTab));
+    document.getElementById("pane-chat").style.display = activeTab === "chat" ? "flex" : "none";
+    document.getElementById("pane-recs").style.display = activeTab === "recs" ? "flex" : "none";
+  });
+});
+
+/* ─────────────────────────────────────────────
+   Holdings
+───────────────────────────────────────────── */
+function renderHoldings() {
+  holdingsList.innerHTML = holdings.map((h, i) => `
+    <div class="holding-row">
+      <div>
+        <span class="holding-ticker">${h.ticker}</span>
+        <span class="holding-detail" style="margin-left:8px">${h.shares} sh${h.avgCost ? " · $"+h.avgCost : ""}</span>
+      </div>
+      <button class="remove-btn" onclick="removeHolding(${i})" title="Remove">×</button>
+    </div>
+  `).join("");
+}
+
+window.removeHolding = function(i) {
+  holdings.splice(i, 1);
+  renderHoldings();
+};
+
+addBtn.addEventListener("click", addHolding);
+newTickerEl.addEventListener("keydown", e => { if (e.key === "Enter") addHolding(); });
+
+function addHolding() {
+  const t = newTickerEl.value.trim().toUpperCase();
+  if (!t) return;
+  const shares = parseFloat(newSharesEl.value) || 0;
+  holdings.push({ ticker: t, shares, avgCost: 0 });
+  newTickerEl.value = ""; newSharesEl.value = "";
+  renderHoldings();
+}
+
+/* ─────────────────────────────────────────────
+   Quick prompts
+───────────────────────────────────────────── */
+function renderQuick() {
+  quickList.innerHTML = QUICK_PROMPTS.map(p => `
+    <button class="quick-prompt" onclick="sendMessage(${JSON.stringify(p)})">${p}</button>
+  `).join("");
+
+  emptyChips.innerHTML = QUICK_PROMPTS.slice(0, 3).map(p => `
+    <button class="chip" onclick="sendMessage(${JSON.stringify(p)})">${p}</button>
+  `).join("");
+}
+
+/* ─────────────────────────────────────────────
+   Input sizing
+───────────────────────────────────────────── */
+chatInput.addEventListener("input", () => {
+  chatInput.style.height = "auto";
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + "px";
+  sendBtn.disabled = !chatInput.value.trim();
+});
+
+chatInput.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    const val = chatInput.value.trim();
+    if (val && !loading) sendMessage(val);
+  }
+});
+
+sendBtn.addEventListener("click", () => {
+  const val = chatInput.value.trim();
+  if (val && !loading) sendMessage(val);
+});
+
+/* ─────────────────────────────────────────────
+   Messaging
+───────────────────────────────────────────── */
+function portfolioCtx() {
+  if (!holdings.length) return "No current holdings.";
+  return holdings.map(h => `${h.ticker}: ${h.shares} shares${h.avgCost ? " @ avg $"+h.avgCost : ""}`).join(", ");
+}
+
+function fmtTime(d) {
+  return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+}
+
+function extractJSON(text) {
+  const m = text.match(/```json\s*([\s\S]*?)```/);
+  if (m) { try { const p = JSON.parse(m[1]); return p.recommendations || []; } catch {} }
+  return [];
+}
+
+function cleanText(text) {
+  return text.replace(/```json[\s\S]*?```/g, "").trim();
+}
+
+function recCardHTML(r) {
+  const ac = (r.action || "hold").toLowerCase();
+  const conf = r.confidence || 0;
+  return `
+    <div class="rec-card ${ac}">
+      <div class="rec-top">
+        <span class="rec-ticker">${r.ticker}</span>
+        <span class="action-badge ${ac}">${r.action}</span>
+      </div>
+      <div class="rec-name">${r.name || ""}</div>
+      <div class="conf-row">
+        <span>Confidence</span>
+        <span class="conf-val ${ac}">${conf}%</span>
+      </div>
+      <div class="conf-bar"><div class="conf-fill ${ac}" style="width:${conf}%"></div></div>
+      <div class="price-grid">
+        ${r.entry    ? `<div class="price-item"><div class="price-label">Entry</div><div class="price-val">$${r.entry}</div></div>` : ""}
+        ${r.target   ? `<div class="price-item"><div class="price-label">Target</div><div class="price-val">$${r.target}</div></div>` : ""}
+        ${r.stopLoss ? `<div class="price-item"><div class="price-label">Stop</div><div class="price-val">$${r.stopLoss}</div></div>` : ""}
+        ${r.holdingPeriod ? `<div class="price-item"><div class="price-label">Hold</div><div class="price-val" style="font-size:10px">${r.holdingPeriod}</div></div>` : ""}
+      </div>
+    </div>`;
+}
+
+function appendMessage(msg) {
+  const wrap = document.createElement("div");
+  wrap.className = `msg msg-${msg.role === "user" ? "user" : "ai"}`;
+
+  const meta = document.createElement("div");
+  meta.className = "msg-meta";
+  meta.textContent = (msg.role === "user" ? "You" : "Apex Analyst") + " · " + fmtTime(msg.time);
+
+  const bubble = document.createElement("div");
+  bubble.className = "msg-bubble";
+  bubble.textContent = msg.content;
+
+  wrap.appendChild(meta);
+  wrap.appendChild(bubble);
+
+  if (msg.recs && msg.recs.length > 0) {
+    const label = document.createElement("div");
+    label.className = "parsed-label";
+    label.textContent = `${msg.recs.length} recommendation${msg.recs.length > 1 ? "s" : ""}`;
+
+    const grid = document.createElement("div");
+    grid.className = "recs-grid";
+    grid.innerHTML = msg.recs.map(recCardHTML).join("");
+
+    wrap.appendChild(label);
+    wrap.appendChild(grid);
+  }
+
+  messagesEl.appendChild(wrap);
+  scrollBottom();
+}
+
+function scrollBottom() {
+  setTimeout(() => { chatWrap.scrollTop = chatWrap.scrollHeight; }, 50);
+}
+
+async function sendMessage(text) {
+  if (!text || loading) return;
+  loading = true;
+  sendBtn.disabled = true;
+  chatInput.value = "";
+  chatInput.style.height = "auto";
+
+  // Hide empty state
+  emptyState.style.display = "none";
+
+  const now = new Date();
+  const userMsg = { role: "user", content: text, time: now };
+  messages.push(userMsg);
+  appendMessage(userMsg);
+
+  // Show typing
+  loadingEl.style.display = "block";
+  scrollBottom();
+
+  // Build API messages — inject portfolio context into every user turn
+  const ctx = `\n\n[PORTFOLIO: ${portfolioCtx()}]\n[TIME: ${now.toLocaleString("en-US", { timeZone: "America/New_York" })} ET]`;
+  const apiMsgs = messages.slice(-12).map((m, i, arr) => ({
+    role: m.role,
+    content: m.role === "user" ? m.content + (i === arr.length - 1 ? ctx : "") : m.content
+  }));
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4000,
+        system: SYSTEM_PROMPT,
+        messages: apiMsgs,
+      }),
+    });
+
+    const data = await res.json();
+    const fullText = (data.content || []).map(c => c.text || "").join("");
+    const recs = extractJSON(fullText);
+    const clean = cleanText(fullText);
+
+    loadingEl.style.display = "none";
+
+    const aiMsg = { role: "assistant", content: clean, time: new Date(), recs };
+    messages.push(aiMsg);
+    appendMessage(aiMsg);
+
+    if (recs.length > 0) {
+      latestRecs = recs;
+      recsBadge.textContent = recs.length;
+      recsBadge.style.display = "inline-flex";
+      // Render in recs tab
+      recsContent.innerHTML = `<div style="margin-bottom:14px;font-size:13px;color:var(--text2)">Latest recommendations · ${fmtTime(new Date())}</div><div class="recs-grid">${recs.map(recCardHTML).join("")}</div>`;
+    }
+  } catch (err) {
+    loadingEl.style.display = "none";
+    const errMsg = { role: "assistant", content: `Error: ${err.message}`, time: new Date(), recs: [] };
+    messages.push(errMsg);
+    appendMessage(errMsg);
+  }
+
+  loading = false;
+  sendBtn.disabled = !chatInput.value.trim();
+}
+
+/* ─────────────────────────────────────────────
+   Init
+───────────────────────────────────────────── */
+renderHoldings();
+renderQuick();
+</script>
+</body>
+</html>
