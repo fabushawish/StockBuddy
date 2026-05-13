@@ -252,16 +252,21 @@ async function fetchLivePricesYahoo(symbols) {
 
   const fetchBatch = async (batch) => {
     const sym  = batch.join(',');
-    const base = `https://query1.finance.yahoo.com/v8/finance/quote?symbols=${encodeURIComponent(sym)}`;
+    // Raw URL — commas are valid in query params; proxies need single-encoded URL
+    const raw1 = `https://query1.finance.yahoo.com/v8/finance/quote?symbols=${sym}&lang=en-US&region=US`;
+    const raw2 = `https://query2.finance.yahoo.com/v8/finance/quote?symbols=${sym}&lang=en-US&region=US`;
     const urls = [
-      `https://query2.finance.yahoo.com/v8/finance/quote?symbols=${encodeURIComponent(sym)}`,
-      base,
-      `https://corsproxy.io/?${encodeURIComponent(base)}`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`,
+      raw2,
+      raw1,
+      `https://corsproxy.io/?${encodeURIComponent(raw1)}`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(raw1)}`,
+      `https://thingproxy.freeboard.io/fetch/${raw1}`,
+      `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(raw1)}`,
     ];
     for (const url of urls) {
       try {
-        const res   = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        const res   = await fetch(url, { signal: AbortSignal.timeout(12000) });
+        if (!res.ok) continue;
         const json  = await res.json();
         const quotes = json?.quoteResponse?.result || [];
         if (quotes.length > 0) return quotes.map(parseQuote).filter(Boolean);
