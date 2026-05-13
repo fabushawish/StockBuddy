@@ -35,27 +35,25 @@
 
       <div id="keyNotSaved">
         <div class="setup-input-row">
-          <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-…" autocomplete="off" style="max-width:400px" />
+          <input type="password" id="apiKeyInput" class="api-key-input" placeholder="sk-ant-api03-…" autocomplete="off" />
           <button class="btn btn-primary" onclick="saveKey()">Connect</button>
         </div>
-        <div style="margin-top:10px;font-size:12px;color:var(--text-dim)">
-          Get your API key at <a href="https://console.anthropic.com/" target="_blank" rel="noopener" style="color:var(--blue)">console.anthropic.com</a>
+        <div class="settings-hint">
+          Get your API key at <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>
         </div>
       </div>
 
       <div id="keySavedState" style="display:none">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          <span style="display:inline-flex;align-items:center;gap:6px;background:var(--green-dim);border:1px solid var(--green-mid);color:var(--green);padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600">
-            ✓ Connected
-          </span>
+        <div class="key-saved-row">
+          <span class="key-saved-badge">✓ Connected</span>
           <button class="btn btn-ghost" onclick="clearKey()">Change Key</button>
         </div>
-        <div style="margin-top:8px;font-size:12px;color:var(--text-dimmer)">
+        <div class="key-saved-hint">
           Key is saved in your browser's local storage. It never leaves your device.
         </div>
       </div>
 
-      <div class="error-box" id="keyErrorBox" style="margin-top:12px"></div>
+      <div class="error-box" id="keyErrorBox"></div>
     </div>
 
     <!-- Section 2: Appearance -->
@@ -68,7 +66,7 @@
           <div class="settings-label">Theme</div>
           <div class="settings-desc">Switch between dark and light mode</div>
         </div>
-        <button class="theme-toggle-btn" id="themeToggleSettings" onclick="toggleThemeSettings()" style="width:auto;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;gap:8px;display:flex;align-items:center">
+        <button class="theme-toggle-btn theme-toggle-settings" id="themeToggleSettings" onclick="toggleThemeSettings()">
           <span id="themeToggleSettingsLabel">Dark Mode</span>
         </button>
       </div>
@@ -111,16 +109,16 @@
           <div class="settings-label">Clear All Data</div>
           <div class="settings-desc">Removes all locally stored data including portfolio, watchlist, and API keys</div>
         </div>
-        <button class="btn btn-ghost" style="color:var(--red);border-color:var(--red)" onclick="clearAllData()">Clear All Data</button>
+        <button class="btn btn-ghost btn-danger" onclick="clearAllData()">Clear All Data</button>
       </div>
 
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
-        <div style="font-size:12px;color:var(--text-dimmer)">
+      <div class="settings-footer">
+        <div class="settings-footer-meta">
           StockBuddy v2.0 &nbsp;·&nbsp; Built by Fadi &nbsp;·&nbsp;
-          <a href="https://github.com/fabushawish/" target="_blank" rel="noopener" style="color:var(--text-dimmer)">GitHub</a>
+          <a href="https://github.com/fabushawish/" target="_blank" rel="noopener">GitHub</a>
         </div>
-        <div style="font-size:11px;color:var(--text-dimmer);margin-top:6px;line-height:1.7">
-          <strong style="color:var(--yellow)">⚠ Disclaimer:</strong>
+        <div class="settings-disclaimer">
+          <strong>⚠ Disclaimer:</strong>
           StockBuddy is powered by an AI that reads the news and sometimes hallucinates stock tips.
           Not financial advice. Not legal advice. Not life advice. If you lose money, that's between you and the market.
           If you make money, holla at your boy ;)<br>Thank you for your attintion to this matter.
@@ -189,12 +187,10 @@ function updateAccountSection(user) {
   if (!el) return;
   if (!FIREBASE_READY) {
     el.innerHTML = `
-      <div style="margin-bottom:16px">
-        <div style="background:var(--yellow-dim);border:1px solid var(--yellow-border);border-radius:8px;padding:14px 16px;font-size:13px;color:var(--yellow);line-height:1.7">
-          <strong style="display:block;margin-bottom:6px">Firebase not configured</strong>
-          To enable Google sign-in and cloud sync, paste your Firebase project credentials into
-          <code>js/firebase-config.js</code>. Until then, all data is stored locally only.
-        </div>
+      <div class="warning-box">
+        <strong>Firebase not configured</strong>
+        To enable Google sign-in and cloud sync, paste your Firebase project credentials into
+        <code>js/firebase-config.js</code>. Until then, all data is stored locally only.
       </div>
       <div class="firebase-config-box">
         <span class="key">window.FIREBASE_CONFIG</span> = {<br>
@@ -210,18 +206,16 @@ function updateAccountSection(user) {
   }
   if (!user) {
     el.innerHTML = `
-      <div style="margin-bottom:16px;font-size:13px;color:var(--text-dim)">
+      <div class="settings-section-sub">
         You are using StockBuddy in local mode. Sign in to sync your data across devices.
       </div>
-      <a href="login.html" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;padding:10px 20px;font-size:14px">
-        Sign in with Google
-      </a>`;
+      <a href="login.html" class="btn btn-primary">Sign in with Google</a>`;
     return;
   }
   el.innerHTML = `
     <div class="settings-row">
-      <div style="display:flex;align-items:center;gap:12px">
-        ${user.photoURL ? `<img src="${user.photoURL}" style="width:40px;height:40px;border-radius:50%;border:1px solid var(--border)" alt="avatar" />` : ''}
+      <div class="account-user-info">
+        ${user.photoURL ? `<img src="${user.photoURL}" class="account-avatar" alt="avatar" />` : ''}
         <div>
           <div class="settings-label">${user.displayName || 'User'}</div>
           <div class="settings-desc">${user.email || ''}</div>
@@ -229,7 +223,7 @@ function updateAccountSection(user) {
       </div>
       <button class="btn btn-ghost" onclick="signOut()">Sign Out</button>
     </div>
-    <div style="font-size:12px;color:var(--text-dimmer);margin-top:8px">
+    <div class="key-saved-hint">
       Your portfolio and watchlist are automatically synced to Firebase Firestore.
     </div>`;
 }

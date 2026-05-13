@@ -73,7 +73,7 @@ function signOut() {
 }
 
 function requireAuth(onUser) {
-  if (!FIREBASE_READY || !sbAuth) {
+  if (!FIREBASE_READY || !sbAuth || sessionStorage.getItem('sb_guest_mode')) {
     updateSidebarUser(null);
     onUser(null);
     return;
@@ -135,6 +135,24 @@ function initSharedUI(currentPage) {
   });
   setInterval(tick, 1000);
   tick();
+
+  // Page exit transition — intercept internal nav link clicks
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[href]');
+    if (!a) return;
+    const href = a.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('//') || a.target === '_blank') return;
+    e.preventDefault();
+    document.body.classList.add('page-exit');
+    setTimeout(() => { window.location.href = href; }, 160);
+  }, true);
+}
+
+function staggerCards(container) {
+  if (!container) return;
+  container.querySelectorAll('.stock-card, .wl-card, .holding-card').forEach((el, i) => {
+    el.style.animationDelay = `${i * 45}ms`;
+  });
 }
 
 function toggleSidebar() {

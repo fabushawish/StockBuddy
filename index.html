@@ -72,9 +72,9 @@
     </div>
 
     <!-- Key Themes — bullet list -->
-    <div id="themesRow" style="display:none;margin-bottom:16px;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:var(--radius);padding:14px 18px;box-shadow:var(--shadow)">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--green);margin-bottom:10px">Today's Themes</div>
-      <ul id="themesList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px"></ul>
+    <div id="themesRow" class="themes-box">
+      <div class="themes-heading">Today's Themes</div>
+      <ul id="themesList" class="themes-list"></ul>
     </div>
 
     <!-- Market Overview -->
@@ -242,8 +242,8 @@ function render(analysis) {
   themesList.innerHTML = '';
   (analysis.key_themes || []).forEach(t => {
     const li = document.createElement('li');
-    li.style.cssText = 'display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text)';
-    li.innerHTML = `<span style="color:var(--green);font-weight:700;line-height:1.6;flex-shrink:0">•</span><span>${t}</span>`;
+    li.className = 'theme-item';
+    li.innerHTML = `<span class="theme-bullet">•</span><span>${t}</span>`;
     themesList.appendChild(li);
   });
   if ((analysis.key_themes || []).length) themesRow.style.display = 'block';
@@ -257,6 +257,7 @@ function render(analysis) {
   document.getElementById('sellCount').textContent = sells.length + ' picks';
   document.getElementById('buyCards').innerHTML  = buys.map(cardHTML).join('');
   document.getElementById('sellCards').innerHTML = sells.map(cardHTML).join('');
+  staggerCards(document.getElementById('results'));
   document.getElementById('results').classList.add('active');
 
   const ts = new Date().toLocaleString('en-US', { timeZone:'America/New_York', dateStyle:'full', timeStyle:'medium' });

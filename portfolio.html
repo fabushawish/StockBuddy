@@ -37,13 +37,19 @@
     </div>
 
     <div class="portfolio-section" id="portfolioSection">
-      <div class="portfolio-header" onclick="togglePortfolioCollapse(event)" style="cursor:pointer">
+      <div class="portfolio-header" onclick="togglePortfolioCollapse(event)">
         <div>
-          <div class="portfolio-title">📊 My Portfolio <span id="portfolioChevron" style="font-size:12px;opacity:.6;margin-left:6px">▼</span></div>
+          <div class="portfolio-title">📊 My Portfolio <span id="portfolioChevron" class="portfolio-chevron">▼</span></div>
           <div class="portfolio-sub" id="portfolioSub">No holdings tracked</div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap" onclick="event.stopPropagation()">
-          <select id="modelSelect" style="font-size:12px;padding:7px 10px">
+        <div class="portfolio-header-actions" onclick="event.stopPropagation()">
+          <select id="sortSelect" class="portfolio-model-select" onchange="handleSort(this.value)">
+            <option value="value-desc">Value ↓</option>
+            <option value="value-asc">Value ↑</option>
+            <option value="roi-desc">ROI ↓</option>
+            <option value="roi-asc">ROI ↑</option>
+          </select>
+          <select id="modelSelect" class="portfolio-model-select">
             <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5</option>
             <option value="claude-sonnet-4-6">Sonnet 4.6</option>
             <option value="claude-opus-4-7">Opus 4.7</option>
@@ -54,7 +60,7 @@
         </div>
       </div>
       <div id="portfolioBody">
-        <div class="portfolio-add-form" id="addPosForm" style="display:none">
+        <div class="portfolio-add-form" id="addPosForm">
           <input class="port-ticker-input" id="posTickerInput" placeholder="AAPL" autocomplete="off"
                  onkeydown="if(event.key==='Enter')addPosition()" />
           <input class="port-num-input" id="posSharesInput" type="number" placeholder="Shares" min="0.001" step="any"
@@ -64,7 +70,7 @@
           <button class="btn btn-primary" onclick="addPosition()">Add</button>
           <button class="btn btn-ghost"   onclick="toggleAddForm()">Cancel</button>
         </div>
-        <div id="portfolioGlance" style="display:none;flex-wrap:wrap;background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:14px;overflow:hidden"></div>
+        <div id="portfolioGlance" class="portfolio-glance" style="display:none"></div>
         <div id="portfolioCards"></div>
       </div>
     </div>
@@ -85,6 +91,12 @@
 let _portPriceMap   = {};
 let _portAiSugs     = [];
 let _portAiAnalysis = {};
+let _portSort       = 'value-desc';
+
+function handleSort(val) {
+  _portSort = val;
+  renderPortfolio(_portPriceMap, _portAiSugs);
+}
 
 function showError(msg) { const el = document.getElementById('errorBox'); el.textContent = '⚠ ' + msg; el.classList.add('active'); }
 function clearError()   { document.getElementById('errorBox').classList.remove('active'); }
@@ -102,7 +114,7 @@ function togglePortfolioCollapse(e) {
 
 function toggleAddForm() {
   const f = document.getElementById('addPosForm');
-  const show = f.style.display === 'none';
+  const show = f.style.display !== 'flex';
   f.style.display = show ? 'flex' : 'none';
   if (show) document.getElementById('posTickerInput').focus();
 }
@@ -135,13 +147,13 @@ function editPosition(ticker) {
   const { shares, avgCost } = loadPortfolio()[ticker];
   const card = document.getElementById(`holding-card-${ticker}`);
   card.innerHTML = `
-    <div class="holding-ticker" style="margin-bottom:10px">${ticker}</div>
+    <div class="holding-ticker holding-ticker-edit">${ticker}</div>
     <div class="holding-edit-form">
       <label class="edit-label">Shares</label>
       <input class="edit-input" type="number" id="edit-shares-${ticker}" value="${shares}" min="0.001" step="any" />
       <label class="edit-label">Avg cost ($)</label>
       <input class="edit-input" type="number" id="edit-cost-${ticker}" value="${avgCost}" min="0.01" step="0.01" />
-      <div style="display:flex;gap:8px;margin-top:4px">
+      <div class="edit-form-actions">
         <button class="btn btn-primary" onclick="saveEdit('${ticker}')">Save</button>
         <button class="btn btn-ghost"   onclick="renderPortfolio(_portPriceMap,_portAiSugs)">Cancel</button>
       </div>
@@ -200,7 +212,7 @@ async function analysePortfolio() {
   const btn   = document.getElementById('analysePortBtn');
   btn.disabled = true; btn.textContent = '🔍 Analysing…';
   document.querySelectorAll('.holding-analysis').forEach(el => {
-    el.innerHTML = '<span style="color:var(--text-dimmer);font-size:12px">Analysing fundamentals…</span>';
+    el.innerHTML = '<span class="holding-conf">Analysing fundamentals…</span>';
   });
   const sysPrompt = 'You are a high-conviction portfolio analyst. Risk tolerance: HIGH — aggressive growth, momentum, and turnaround plays are fine when backed by fundamentals or a clear catalyst. Reject pure meme speculation with no thesis.\n\nAnalyse each ticker using your knowledge of its business model, recent earnings trajectory, analyst consensus, sector tailwinds/headwinds, valuation, and momentum as of your training data. Be direct and opinionated.\n\nSignal options: STRONG BUY | BUY MORE | HOLD | REDUCE | SELL\n\nReturn ONLY valid JSON in <json_data> tags:\n<json_data>\n{"analyses":[{"ticker":"AAPL","signal":"HOLD","confidence_pct":78,"reason":"1-2 sentence thesis with specific fundamental or catalyst","risk":"Primary risk factor"}]}\n</json_data>\n\nOutput ONLY the <json_data> block — nothing before or after.';
   try {
@@ -259,8 +271,28 @@ function renderPortfolio(priceMap, aiSugs) {
     glanceEl.style.display = 'none';
     return;
   }
+  // Sort holdings
+  const sortedTickers = [...tickers];
+  const [sortBy, sortDir] = _portSort.split('-');
+  sortedTickers.sort((a, b) => {
+    const pa = _portPriceMap[a], pb = _portPriceMap[b];
+    if (sortBy === 'value') {
+      const va = pa ? portfolio[a].shares * (pa.extPrice ?? pa.price) : 0;
+      const vb = pb ? portfolio[b].shares * (pb.extPrice ?? pb.price) : 0;
+      return sortDir === 'desc' ? vb - va : va - vb;
+    }
+    if (sortBy === 'roi') {
+      const ca = pa ? (pa.extPrice ?? pa.price) : null;
+      const cb = pb ? (pb.extPrice ?? pb.price) : null;
+      const ra = ca != null ? (ca - portfolio[a].avgCost) / portfolio[a].avgCost * 100 : (sortDir === 'desc' ? -Infinity : Infinity);
+      const rb = cb != null ? (cb - portfolio[b].avgCost) / portfolio[b].avgCost * 100 : (sortDir === 'desc' ? -Infinity : Infinity);
+      return sortDir === 'desc' ? rb - ra : ra - rb;
+    }
+    return 0;
+  });
+
   let totalValue = 0, totalCost = 0, priced = 0;
-  const cards = tickers.map(ticker => {
+  const cards = sortedTickers.map(ticker => {
     const { shares, avgCost } = portfolio[ticker];
     const p   = _portPriceMap[ticker];
     const cur = p ? (p.extPrice ?? p.price) : null;
@@ -275,12 +307,12 @@ function renderPortfolio(priceMap, aiSugs) {
       pnlPct      = ((cur - avgCost) / avgCost) * 100;
       totalValue += value;
       const up = pnl >= 0;
-      priceHtml  = `<span class="holding-price" style="color:var(${up?'--green':'--red'})">$${cur.toFixed(2)}</span>`;
-      roiRowHtml = `<div class="holding-roi-row"><span class="holding-roi-pct" style="color:var(${up?'--green':'--red'})">ROI ${up?'+':''}${pnlPct.toFixed(2)}%</span><span class="holding-roi-pnl" style="color:var(${up?'--green':'--red'})">${up?'+':'-'}$${Math.abs(pnl).toFixed(2)}</span></div>`;
+      priceHtml  = `<span class="holding-price ${up?'up':'down'}">$${cur.toFixed(2)}</span>`;
+      roiRowHtml = `<div class="holding-roi-row"><span class="holding-roi-pct ${up?'up':'down'}">ROI ${up?'+':''}${pnlPct.toFixed(2)}%</span><span class="holding-roi-pnl ${up?'up':'down'}">${up?'+':'-'}$${Math.abs(pnl).toFixed(2)}</span></div>`;
       footerVal  = `Value: $${value.toFixed(2)}`;
       signal     = portfolioSignal(ticker, pnlPct, _portAiSugs);
     } else {
-      priceHtml  = `<span class="holding-price" style="color:var(--text-dimmer)">No price</span>`;
+      priceHtml  = `<span class="holding-price dim">No price</span>`;
       roiRowHtml = '';
       footerVal  = `Cost: $${cost.toFixed(2)}`;
       signal     = portfolioSignal(ticker, 0, _portAiSugs);
@@ -289,15 +321,16 @@ function renderPortfolio(priceMap, aiSugs) {
     const analysisHtml = ai
       ? `<div class="holding-analysis"><div class="holding-reason">${ai.reason}</div>${ai.risk?`<div class="holding-risk">⚠ ${ai.risk}</div>`:''}<div class="holding-conf">Confidence: ${ai.confidence}%</div></div>`
       : `<div class="holding-analysis"></div>`;
-    return `<div class="holding-card" id="holding-card-${ticker}"><div class="holding-top"><div><div class="holding-ticker">${ticker}</div><div class="holding-meta">${shares} shares &middot; avg $${avgCost.toFixed(2)} &middot; cost $${cost.toFixed(2)}</div></div><span class="sig ${signal.cls}">${signal.label}</span></div><div class="holding-price-row">${priceHtml}</div>${roiRowHtml}${analysisHtml}<div class="holding-footer"><span class="holding-value">${footerVal}</span><div style="display:flex;gap:8px"><button class="holding-edit" onclick="editPosition('${ticker}')">✎ Edit</button><button class="holding-remove" onclick="removePosition('${ticker}')">✕ Remove</button></div></div></div>`;
+    return `<div class="holding-card" id="holding-card-${ticker}"><div class="holding-top"><div><div class="holding-ticker">${ticker}</div><div class="holding-meta">${shares} shares &middot; avg $${avgCost.toFixed(2)} &middot; cost $${cost.toFixed(2)}</div></div><span class="sig ${signal.cls}">${signal.label}</span></div><div class="holding-price-row">${priceHtml}</div>${roiRowHtml}${analysisHtml}<div class="holding-footer"><span class="holding-value">${footerVal}</span><div class="holding-footer-actions"><button class="holding-edit" onclick="editPosition('${ticker}')">✎ Edit</button><button class="holding-remove" onclick="removePosition('${ticker}')">✕ Remove</button></div></div></div>`;
   }).join('');
   cardsEl.innerHTML = `<div class="portfolio-cards-grid">${cards}</div>`;
+  staggerCards(cardsEl);
   const totalPnl    = totalValue - totalCost;
   const totalPnlPct = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
   const up          = totalPnl >= 0;
   if (totalValue > 0) {
     glanceEl.style.display = 'flex';
-    glanceEl.innerHTML = `<div class="port-glance-stat"><span class="port-glance-label">Overall ROI</span><span class="port-roi-big" style="color:var(${up?'--green':'--red'})">${up?'+':''}${totalPnlPct.toFixed(2)}%</span></div><div class="port-glance-stat"><span class="port-glance-label">Total Value</span><span class="port-glance-val">$${totalValue.toFixed(2)}</span></div><div class="port-glance-stat"><span class="port-glance-label">Total P&amp;L</span><span class="port-glance-val" style="color:var(${up?'--green':'--red'})">${up?'+':'-'}$${Math.abs(totalPnl).toFixed(2)}</span></div><div class="port-glance-stat"><span class="port-glance-label">Holdings</span><span class="port-glance-val">${tickers.length}</span></div>`;
+    glanceEl.innerHTML = `<div class="port-glance-stat"><span class="port-glance-label">Overall ROI</span><span class="port-roi-big ${up?'up':'down'}">${up?'+':''}${totalPnlPct.toFixed(2)}%</span></div><div class="port-glance-stat"><span class="port-glance-label">Total Value</span><span class="port-glance-val">$${totalValue.toFixed(2)}</span></div><div class="port-glance-stat"><span class="port-glance-label">Total P&amp;L</span><span class="port-glance-val ${up?'up':'down'}">${up?'+':'-'}$${Math.abs(totalPnl).toFixed(2)}</span></div><div class="port-glance-stat"><span class="port-glance-label">Holdings</span><span class="port-glance-val">${tickers.length}</span></div>`;
     subEl.textContent = `${priced} of ${tickers.length} priced · Cost basis $${totalCost.toFixed(2)}`;
   } else {
     glanceEl.style.display = 'none';

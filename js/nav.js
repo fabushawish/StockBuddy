@@ -26,19 +26,17 @@
     sidebar.className =
       'fixed top-0 left-0 bottom-0 w-56 flex flex-col overflow-y-auto z-[200] ' +
       '-translate-x-full lg:translate-x-0 transition-transform duration-300';
-    sidebar.style.cssText = 'background:var(--bg2);border-right:1px solid var(--border)';
     sidebar.innerHTML = `
-      <div style="padding:18px 20px 16px;border-bottom:1px solid var(--border);flex-shrink:0">
-        <div class="sidebar-wordmark"><span class="stock">Stock</span><span class="buddy">Buddy</span></div>
-        <small style="font-size:11px;color:var(--text-dim);display:block;margin-top:2px">by Fadi</small>
+      <div class="sidebar-brand">
+        <div class="sidebar-wordmark"><span class="stock">Stock</span><span class="buddy">Buddy</span><small><b>by Fadi</b></small></div>
       </div>
-      <div style="padding:10px;flex:1">
+      <div class="sidebar-links">
         <a href="index.html"     class="sidebar-nav-item" data-page="analysis"> <span class="nav-icon">⚡</span> Analysis</a>
         <a href="research.html"  class="sidebar-nav-item" data-page="research">  <span class="nav-icon">🔭</span> Research</a>
         <a href="portfolio.html" class="sidebar-nav-item" data-page="portfolio"><span class="nav-icon">📊</span> Portfolio</a>
         <a href="settings.html"  class="sidebar-nav-item" data-page="settings"> <span class="nav-icon">⚙</span> Settings</a>
       </div>
-      <div style="padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0">
+      <div class="sidebar-footer-inner">
         <div class="sidebar-user">
           <img class="sidebar-avatar" id="sidebarAvatar" style="display:none" alt="avatar" />
           <div class="sidebar-user-info">
@@ -55,7 +53,6 @@
   if (topbar) {
     topbar.className =
       'sticky top-0 z-[100] shrink-0 flex items-center justify-between gap-4 px-4 lg:px-7 h-14';
-    topbar.style.cssText = 'background:var(--bg2);border-bottom:1px solid var(--border)';
     topbar.innerHTML = `
       <div class="flex items-center gap-3 min-w-0">
         <button class="hamburger lg:hidden" onclick="toggleSidebar()">☰</button>
@@ -75,7 +72,6 @@
   const bottomNav = document.getElementById('sb-bottomnav');
   if (bottomNav) {
     bottomNav.className = 'bottom-nav fixed bottom-0 inset-x-0 z-[100] flex lg:hidden';
-    bottomNav.style.cssText = 'background:var(--bg2);border-top:1px solid var(--border)';
     bottomNav.innerHTML = `
       <a href="index.html"     data-page="analysis"> <span class="bnav-icon">⚡</span>Analysis</a>
       <a href="research.html"  data-page="research">  <span class="bnav-icon">🔭</span>Research</a>
