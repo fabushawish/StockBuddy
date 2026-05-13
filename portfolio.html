@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StockBuddy — Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+
+<!-- Sidebar overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-wordmark"><span class="stock">Stock</span><span class="buddy">Buddy</span></div>
+      <small>by Fadi</small>
+    </div>
+    <div class="sidebar-nav">
+      <a href="index.html"     class="sidebar-nav-item" data-page="analysis"> <span class="nav-icon">⚡</span> Analysis</a>
+      <a href="research.html"  class="sidebar-nav-item" data-page="research">  <span class="nav-icon">🔭</span> Research</a>
+      <a href="portfolio.html" class="sidebar-nav-item" data-page="portfolio"><span class="nav-icon">📊</span> Portfolio</a>
+      <a href="settings.html"  class="sidebar-nav-item" data-page="settings"> <span class="nav-icon">⚙</span> Settings</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <img class="sidebar-avatar" id="sidebarAvatar" style="display:none" alt="avatar" />
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name"  id="sidebarUserName">—</div>
+          <div class="sidebar-user-email" id="sidebarUserEmail">Loading…</div>
+        </div>
+      </div>
+      <button class="sidebar-signout" onclick="signOut()">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- Main column -->
+  <div class="main-column">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <h1 class="page-title">📊 Portfolio</h1>
+        <div class="market-pill">
+          <div class="status-dot" id="statusDot"></div>
+          <span id="marketText">—</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="clock mono" id="clock">--:-- ET</div>
+        <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()">🌙</button>
+      </div>
+    </header>
+
+    <!-- Page content -->
+    <main class="page-content">
+
+      <!-- Error box -->
+      <div class="error-box" id="errorBox"></div>
+
+      <!-- Loading -->
+      <div class="loading-box" id="loadingBox">
+        <div class="spinner"></div>
+        <div class="loading-status"><em id="loadMsg">Loading…</em></div>
+        <div id="stepsEl"></div>
+      </div>
+
+      <!-- Portfolio Section -->
+      <div class="portfolio-section" id="portfolioSection">
+        <div class="portfolio-header" onclick="togglePortfolioCollapse(event)" style="cursor:pointer">
+          <div>
+            <div class="portfolio-title">📊 My Portfolio <span id="portfolioChevron" style="font-size:12px;opacity:.6;margin-left:6px">▼</span></div>
+            <div class="portfolio-sub" id="portfolioSub">No holdings tracked</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" onclick="event.stopPropagation()">
+            <select id="modelSelect" style="font-size:12px;padding:7px 10px">
+              <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5</option>
+              <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+              <option value="claude-opus-4-7">Opus 4.7</option>
+            </select>
+            <button class="btn btn-ghost" onclick="toggleAddForm()">+ Add Position</button>
+            <button class="btn btn-ghost" id="refreshPricesBtn" onclick="manualRefreshPrices()">↻ Prices</button>
+            <button class="btn btn-primary" id="analysePortBtn" onclick="analysePortfolio()">🔍 Analyse</button>
+          </div>
+        </div>
+        <div id="portfolioBody">
+          <div class="portfolio-add-form" id="addPosForm" style="display:none">
+            <input class="port-ticker-input" id="posTickerInput" placeholder="AAPL" autocomplete="off"
+                   onkeydown="if(event.key==='Enter')addPosition()" />
+            <input class="port-num-input" id="posSharesInput" type="number" placeholder="Shares" min="0.001" step="any"
+                   onkeydown="if(event.key==='Enter')addPosition()" />
+            <input class="port-num-input" id="posCostInput" type="number" placeholder="Avg cost $" min="0.01" step="0.01"
+                   onkeydown="if(event.key==='Enter')addPosition()" />
+            <button class="btn btn-primary" onclick="addPosition()">Add</button>
+            <button class="btn btn-ghost"   onclick="toggleAddForm()">Cancel</button>
+          </div>
+          <div id="portfolioGlance" style="display:none"></div>
+          <div id="portfolioCards"></div>
+        </div>
+      </div>
+
+    </main>
+  </div><!-- /.main-column -->
+</div><!-- /.app-layout -->
+
+<!-- Bottom nav -->
+<nav class="bottom-nav">
+  <a href="index.html"     data-page="analysis"> <span class="bnav-icon">⚡</span>Analysis</a>
+  <a href="research.html"  data-page="research">  <span class="bnav-icon">🔭</span>Research</a>
+  <a href="portfolio.html" data-page="portfolio"><span class="bnav-icon">📊</span>Portfolio</a>
+  <a href="settings.html"  data-page="settings"> <span class="bnav-icon">⚙</span>Settings</a>
+</nav>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/shared.js"></script>
+<script>
+// ─────────────────────────────────────────────
+//  PORTFOLIO PAGE GLOBALS
+// ─────────────────────────────────────────────
+let _portPriceMap   = {};
+let _portAiSugs     = [];
+let _portAiAnalysis = {};   // { TICKER: { signal, confidence, reason, risk } }
+
+// ─────────────────────────────────────────────
+//  ERROR / LOADING
+// ─────────────────────────────────────────────
+function showError(msg) {
+  const el = document.getElementById('errorBox');
+  el.textContent = '⚠ ' + msg;
+  el.classList.add('active');
+}
+function clearError() {
+  document.getElementById('errorBox').classList.remove('active');
+}
+function updateLoad(msg) {
+  document.getElementById('loadMsg').innerHTML = `<em>${msg}</em>`;
+}
+function startLoading() {
+  document.getElementById('loadingBox').classList.add('active');
+  document.getElementById('stepsEl').innerHTML = '';
+  updateLoad('Loading…');
+}
+function stopLoading() {
+  document.getElementById('loadingBox').classList.remove('active');
+}
+
+// ─────────────────────────────────────────────
+//  PORTFOLIO COLLAPSE
+// ─────────────────────────────────────────────
+function togglePortfolioCollapse(e) {
+  if (e && e.target.closest('button,input,select')) return;
+  const body    = document.getElementById('portfolioBody');
+  const chevron = document.getElementById('portfolioChevron');
+  const collapsed = body.classList.toggle('collapsed');
+  chevron.textContent = collapsed ? '▶' : '▼';
+}
+
+function toggleAddForm() {
+  const f = document.getElementById('addPosForm');
+  const show = f.style.display === 'none';
+  f.style.display = show ? 'flex' : 'none';
+  if (show) document.getElementById('posTickerInput').focus();
+}
+
+// ─────────────────────────────────────────────
+//  ADD / REMOVE / EDIT POSITIONS
+// ─────────────────────────────────────────────
+function addPosition() {
+  const ticker  = (document.getElementById('posTickerInput').value || '').trim().toUpperCase();
+  const shares  = parseFloat(document.getElementById('posSharesInput').value);
+  const avgCost = parseFloat(document.getElementById('posCostInput').value);
+  if (!ticker || isNaN(shares) || isNaN(avgCost) || shares <= 0 || avgCost <= 0) {
+    showError('Enter ticker, number of shares, and average cost.'); return;
+  }
+  const p = loadPortfolio();
+  p[ticker] = { shares, avgCost };
+  savePortfolio(p);
+  document.getElementById('posTickerInput').value  = '';
+  document.getElementById('posSharesInput').value  = '';
+  document.getElementById('posCostInput').value    = '';
+  toggleAddForm();
+  renderPortfolio(_portPriceMap, _portAiSugs);
+  fetchPortfolioPrices();
+}
+
+function removePosition(ticker) {
+  const p = loadPortfolio();
+  delete p[ticker];
+  delete _portAiAnalysis[ticker];
+  savePortfolio(p);
+  renderPortfolio(_portPriceMap, _portAiSugs);
+}
+
+function editPosition(ticker) {
+  const { shares, avgCost } = loadPortfolio()[ticker];
+  const card = document.getElementById(`holding-card-${ticker}`);
+  card.innerHTML = `
+    <div class="holding-ticker" style="margin-bottom:10px">${ticker}</div>
+    <div class="holding-edit-form">
+      <label class="edit-label">Shares</label>
+      <input class="edit-input" type="number" id="edit-shares-${ticker}" value="${shares}" min="0.001" step="any" />
+      <label class="edit-label">Avg cost ($)</label>
+      <input class="edit-input" type="number" id="edit-cost-${ticker}"   value="${avgCost}" min="0.01" step="0.01" />
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-primary" onclick="saveEdit('${ticker}')">Save</button>
+        <button class="btn btn-ghost"   onclick="renderPortfolio(_portPriceMap,_portAiSugs)">Cancel</button>
+      </div>
+    </div>`;
+}
+
+function saveEdit(ticker) {
+  const shares  = parseFloat(document.getElementById(`edit-shares-${ticker}`).value);
+  const avgCost = parseFloat(document.getElementById(`edit-cost-${ticker}`).value);
+  if (isNaN(shares) || isNaN(avgCost) || shares <= 0 || avgCost <= 0) {
+    showError('Invalid shares or cost.'); return;
+  }
+  const p = loadPortfolio();
+  p[ticker] = { shares, avgCost };
+  savePortfolio(p);
+  renderPortfolio(_portPriceMap, _portAiSugs);
+}
+
+// ─────────────────────────────────────────────
+//  PORTFOLIO SIGNAL
+// ─────────────────────────────────────────────
+function portfolioSignal(ticker, pnlPct, aiSugs) {
+  const ai = _portAiAnalysis[ticker];
+  if (ai) {
+    const map = {
+      'STRONG BUY': { cls:'sig-buy',  label:'⚡ STRONG BUY' },
+      'BUY MORE':   { cls:'sig-buy',  label:'▲ BUY MORE'   },
+      'HOLD':       { cls:'sig-hold', label:'● HOLD'        },
+      'REDUCE':     { cls:'sig-cut',  label:'▽ REDUCE'      },
+      'SELL':       { cls:'sig-sell', label:'▼ SELL'        },
+    };
+    return map[ai.signal] || { cls:'sig-hold', label:'● HOLD' };
+  }
+  const hit = aiSugs.find(s => s.ticker === ticker);
+  if (hit) return hit.action === 'BUY'
+    ? { cls:'sig-buy',  label:'▲ BUY MORE — AI PICK' }
+    : { cls:'sig-sell', label:'▼ SELL — AI PICK' };
+  if (pnlPct <= -7)  return { cls:'sig-cut',  label:'⚠ CUT LOSS' };
+  if (pnlPct >= 20)  return { cls:'sig-take', label:'💰 TAKE PROFIT' };
+  return { cls:'sig-hold', label:'● HOLD' };
+}
+
+// ─────────────────────────────────────────────
+//  ANALYSE PORTFOLIO (AI)
+// ─────────────────────────────────────────────
+async function analysePortfolio() {
+  const apiKey = localStorage.getItem('sb_key');
+  if (!apiKey) { showError('Anthropic API key required. Go to Settings.'); return; }
+  const portfolio = loadPortfolio();
+  const tickers   = Object.keys(portfolio);
+  if (!tickers.length) return;
+
+  const model  = document.getElementById('modelSelect').value;
+  const btn    = document.getElementById('analysePortBtn');
+  btn.disabled = true;
+  btn.textContent = '🔍 Analysing…';
+
+  document.querySelectorAll('.holding-analysis').forEach(el => {
+    el.innerHTML = '<span style="color:var(--text-dimmer);font-size:12px">Analysing fundamentals…</span>';
+  });
+
+  const sysPrompt =
+    'You are a high-conviction portfolio analyst. Risk tolerance: HIGH — aggressive growth, momentum, and turnaround plays are fine when backed by fundamentals or a clear catalyst. Reject pure meme speculation with no thesis.\n\n' +
+    'Analyse each ticker using your knowledge of its business model, recent earnings trajectory, analyst consensus, sector tailwinds/headwinds, valuation, and momentum as of your training data. Be direct and opinionated.\n\n' +
+    'Signal options: STRONG BUY | BUY MORE | HOLD | REDUCE | SELL\n\n' +
+    'Return ONLY valid JSON in <json_data> tags:\n' +
+    '<json_data>\n' +
+    '{"analyses":[{"ticker":"AAPL","signal":"HOLD","confidence_pct":78,"reason":"1-2 sentence thesis with specific fundamental or catalyst","risk":"Primary risk factor"}]}\n' +
+    '</json_data>\n\n' +
+    'Output ONLY the <json_data> block — nothing before or after.';
+
+  try {
+    const today = new Date().toLocaleDateString('en-US', {
+      timeZone:'America/New_York', weekday:'long', year:'numeric', month:'long', day:'numeric'
+    });
+
+    const BATCH_SIZE = 10;
+    const allAnalyses = [];
+    const totalBatches = Math.ceil(tickers.length / BATCH_SIZE);
+
+    for (let bi = 0; bi < tickers.length; bi += BATCH_SIZE) {
+      const batch = tickers.slice(bi, bi + BATCH_SIZE);
+      const batchNum = Math.floor(bi / BATCH_SIZE) + 1;
+      btn.textContent = totalBatches > 1
+        ? `🔍 Analysing batch ${batchNum}/${totalBatches}…`
+        : '🔍 Analysing…';
+
+      const holdingsList = batch.map(t => {
+        const p      = _portPriceMap[t];
+        const cur    = p ? (p.extPrice ?? p.price) : null;
+        const { shares, avgCost } = portfolio[t];
+        const pnlPct = cur ? ((cur - avgCost) / avgCost * 100).toFixed(1) + '%' : 'unknown';
+        return `${t}: ${shares} shares @ avg $${avgCost.toFixed(2)}, current ${cur ? '$' + cur.toFixed(2) : 'unknown'}, P&L ${pnlPct}`;
+      }).join('\n');
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type':                              'application/json',
+          'x-api-key':                                 apiKey,
+          'anthropic-version':                         '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 4000,
+          system: sysPrompt,
+          messages: [{ role:'user', content:
+            `Today: ${today}\n\nAnalyse each holding below using your knowledge of fundamentals, earnings trajectory, analyst consensus, and sector context. Give a high-conviction signal for each:\n\n${holdingsList}`
+          }],
+        }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error?.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      if (data.type === 'error') throw new Error(data.error?.message || 'API error');
+
+      const text = extractText(data);
+      let parsed;
+      try {
+        parsed = parseAnalysis(text);
+      } catch (parseErr) {
+        if (!parseErr.message.startsWith('PARSE_FAIL:')) throw parseErr;
+        const fixedText = await reformatAsJson(apiKey, model, text);
+        parsed = parseAnalysis(fixedText);
+      }
+      allAnalyses.push(...(parsed.analyses || []));
+    }
+
+    _portAiAnalysis = {};
+    allAnalyses.forEach(a => {
+      _portAiAnalysis[a.ticker] = {
+        signal:     a.signal,
+        confidence: a.confidence_pct,
+        reason:     a.reason,
+        risk:       a.risk,
+      };
+    });
+
+    renderPortfolio(_portPriceMap, _portAiSugs);
+
+  } catch (err) {
+    showError('Portfolio analysis failed: ' + err.message);
+    document.querySelectorAll('.holding-analysis').forEach(el => { el.innerHTML = ''; });
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '🔍 Re-analyse';
+  }
+}
+
+// ─────────────────────────────────────────────
+//  RENDER PORTFOLIO
+// ─────────────────────────────────────────────
+function renderPortfolio(priceMap, aiSugs) {
+  _portPriceMap = priceMap || {};
+  _portAiSugs   = aiSugs   || [];
+
+  const portfolio  = loadPortfolio();
+  const tickers    = Object.keys(portfolio);
+  const cardsEl    = document.getElementById('portfolioCards');
+  const subEl      = document.getElementById('portfolioSub');
+  const glanceEl   = document.getElementById('portfolioGlance');
+
+  if (!tickers.length) {
+    cardsEl.innerHTML   = '<div class="portfolio-empty">No holdings yet. Click <strong>+ Add Position</strong> to start tracking.</div>';
+    subEl.textContent   = 'No holdings tracked';
+    glanceEl.style.display = 'none';
+    return;
+  }
+
+  let totalValue = 0, totalCost = 0, priced = 0;
+
+  const cards = tickers.map(ticker => {
+    const { shares, avgCost } = portfolio[ticker];
+    const p   = _portPriceMap[ticker];
+    const cur = p ? (p.extPrice ?? p.price) : null;
+    const cost = shares * avgCost;
+    totalCost += cost;
+
+    let priceHtml, roiRowHtml, footerVal, pnlPct = 0;
+    let signal = { cls:'sig-hold', label:'● HOLD' };
+
+    if (cur) {
+      priced++;
+      const value = shares * cur;
+      const pnl   = value - cost;
+      pnlPct      = ((cur - avgCost) / avgCost) * 100;
+      totalValue += value;
+      const up    = pnl >= 0;
+      priceHtml  = `<span class="holding-price" style="color:var(${up?'--green':'--red'})">$${cur.toFixed(2)}</span>`;
+      roiRowHtml = `<div class="holding-roi-row">
+        <span class="holding-roi-pct" style="color:var(${up?'--green':'--red'})">ROI ${up?'+':''}${pnlPct.toFixed(2)}%</span>
+        <span class="holding-roi-pnl" style="color:var(${up?'--green':'--red'})">${up?'+':'-'}$${Math.abs(pnl).toFixed(2)}</span>
+      </div>`;
+      footerVal  = `Value: $${value.toFixed(2)}`;
+      signal     = portfolioSignal(ticker, pnlPct, _portAiSugs);
+    } else {
+      priceHtml  = `<span class="holding-price" style="color:var(--text-dimmer)">No price</span>`;
+      roiRowHtml = '';
+      footerVal  = `Cost: $${cost.toFixed(2)}`;
+      signal     = portfolioSignal(ticker, 0, _portAiSugs);
+    }
+
+    const ai = _portAiAnalysis[ticker];
+    const analysisHtml = ai
+      ? `<div class="holding-analysis">
+           <div class="holding-reason">${ai.reason}</div>
+           ${ai.risk ? `<div class="holding-risk">⚠ ${ai.risk}</div>` : ''}
+           <div class="holding-conf">Confidence: ${ai.confidence}%</div>
+         </div>`
+      : `<div class="holding-analysis"></div>`;
+
+    return `
+<div class="holding-card" id="holding-card-${ticker}">
+  <div class="holding-top">
+    <div>
+      <div class="holding-ticker">${ticker}</div>
+      <div class="holding-meta">${shares} shares &middot; avg $${avgCost.toFixed(2)} &middot; cost $${cost.toFixed(2)}</div>
+    </div>
+    <span class="sig ${signal.cls}">${signal.label}</span>
+  </div>
+  <div class="holding-price-row">${priceHtml}</div>
+  ${roiRowHtml}
+  ${analysisHtml}
+  <div class="holding-footer">
+    <span class="holding-value">${footerVal}</span>
+    <div style="display:flex;gap:8px">
+      <button class="holding-edit"   onclick="editPosition('${ticker}')">✎ Edit</button>
+      <button class="holding-remove" onclick="removePosition('${ticker}')">✕ Remove</button>
+    </div>
+  </div>
+</div>`;
+  }).join('');
+
+  cardsEl.innerHTML = `<div class="portfolio-cards-grid">${cards}</div>`;
+
+  const totalPnl    = totalValue - totalCost;
+  const totalPnlPct = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
+  const up          = totalPnl >= 0;
+
+  if (totalValue > 0) {
+    glanceEl.style.display = 'flex';
+    glanceEl.innerHTML = `
+      <div class="port-glance-stat">
+        <span class="port-glance-label">Overall ROI</span>
+        <span class="port-roi-big" style="color:var(${up?'--green':'--red'})">${up?'+':''}${totalPnlPct.toFixed(2)}%</span>
+      </div>
+      <div class="port-glance-stat">
+        <span class="port-glance-label">Total Value</span>
+        <span class="port-glance-val">$${totalValue.toFixed(2)}</span>
+      </div>
+      <div class="port-glance-stat">
+        <span class="port-glance-label">Total P&amp;L</span>
+        <span class="port-glance-val" style="color:var(${up?'--green':'--red'})">${up?'+':'-'}$${Math.abs(totalPnl).toFixed(2)}</span>
+      </div>
+      <div class="port-glance-stat">
+        <span class="port-glance-label">Holdings</span>
+        <span class="port-glance-val">${tickers.length}</span>
+      </div>`;
+    subEl.textContent = `${priced} of ${tickers.length} priced · Cost basis $${totalCost.toFixed(2)}`;
+  } else {
+    glanceEl.style.display = 'none';
+    subEl.textContent = `${tickers.length} holdings · Cost basis: $${totalCost.toFixed(2)}`;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  FETCH PORTFOLIO PRICES
+// ─────────────────────────────────────────────
+async function fetchPortfolioPrices() {
+  const portfolio = loadPortfolio();
+  const tickers   = Object.keys(portfolio);
+  if (!tickers.length) return;
+
+  const btn   = document.getElementById('refreshPricesBtn');
+  const subEl = document.getElementById('portfolioSub');
+  if (btn)   { btn.disabled = true; btn.textContent = '↻ Loading…'; }
+  if (subEl) { subEl.textContent = 'Loading prices…'; }
+
+  try {
+    const rows = await fetchLivePricesYahoo(tickers);
+    rows.forEach(r => { _portPriceMap[r.ticker] = r; });
+    renderPortfolio(_portPriceMap, _portAiSugs);
+  } catch (e) {
+    if (subEl) subEl.textContent = `⚠ Price fetch failed: ${e.message}`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '↻ Prices'; }
+  }
+}
+
+async function manualRefreshPrices() {
+  _portPriceMap = {};
+  await fetchPortfolioPrices();
+}
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+requireAuth(function(user) {
+  initSharedUI('portfolio');
+  renderPortfolio({}, []);
+  fetchPortfolioPrices();
+});
+</script>
+</body>
+</html>

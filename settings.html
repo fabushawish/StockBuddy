@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StockBuddy — Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+
+<!-- Sidebar overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-wordmark"><span class="stock">Stock</span><span class="buddy">Buddy</span></div>
+      <small>by Fadi</small>
+    </div>
+    <div class="sidebar-nav">
+      <a href="index.html"     class="sidebar-nav-item" data-page="analysis"> <span class="nav-icon">⚡</span> Analysis</a>
+      <a href="research.html"  class="sidebar-nav-item" data-page="research">  <span class="nav-icon">🔭</span> Research</a>
+      <a href="portfolio.html" class="sidebar-nav-item" data-page="portfolio"><span class="nav-icon">📊</span> Portfolio</a>
+      <a href="settings.html"  class="sidebar-nav-item" data-page="settings"> <span class="nav-icon">⚙</span> Settings</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <img class="sidebar-avatar" id="sidebarAvatar" style="display:none" alt="avatar" />
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name"  id="sidebarUserName">—</div>
+          <div class="sidebar-user-email" id="sidebarUserEmail">Loading…</div>
+        </div>
+      </div>
+      <button class="sidebar-signout" onclick="signOut()">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- Main column -->
+  <div class="main-column">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <h1 class="page-title">⚙ Settings</h1>
+        <div class="market-pill">
+          <div class="status-dot" id="statusDot"></div>
+          <span id="marketText">—</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="clock mono" id="clock">--:-- ET</div>
+        <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()">🌙</button>
+      </div>
+    </header>
+
+    <!-- Page content -->
+    <main class="page-content">
+
+      <!-- Section 1: Anthropic API Key -->
+      <div class="settings-section">
+        <div class="settings-section-title">Anthropic API Key</div>
+        <div class="settings-section-sub">Required for AI analysis. Stored locally on this device — never uploaded to any server.</div>
+
+        <!-- Not saved state -->
+        <div id="keyNotSaved">
+          <div class="setup-input-row">
+            <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-…" autocomplete="off" style="max-width:400px" />
+            <button class="btn btn-primary" onclick="saveKey()">Connect</button>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:var(--text-dim)">
+            Get your API key at <a href="https://console.anthropic.com/" target="_blank" rel="noopener" style="color:var(--blue)">console.anthropic.com</a>
+          </div>
+        </div>
+
+        <!-- Saved state -->
+        <div id="keySavedState" style="display:none">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <span style="display:inline-flex;align-items:center;gap:6px;background:var(--green-dim);border:1px solid var(--green-mid);color:var(--green);padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600">
+              ✓ Connected
+            </span>
+            <button class="btn btn-ghost" onclick="clearKey()">Change Key</button>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:var(--text-dimmer)">
+            Key is saved in your browser's local storage. It never leaves your device.
+          </div>
+        </div>
+
+        <div class="error-box" id="keyErrorBox" style="margin-top:12px"></div>
+      </div>
+
+      <!-- Section 2: Appearance -->
+      <div class="settings-section">
+        <div class="settings-section-title">Appearance</div>
+        <div class="settings-section-sub">Customise how StockBuddy looks and behaves.</div>
+
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Theme</div>
+            <div class="settings-desc">Switch between dark and light mode</div>
+          </div>
+          <button class="theme-toggle-btn" id="themeToggleSettings" onclick="toggleThemeSettings()" style="width:auto;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;gap:8px;display:flex;align-items:center">
+            <span id="themeToggleSettingsLabel">Dark Mode</span>
+          </button>
+        </div>
+
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Default Model</div>
+            <div class="settings-desc">Pre-select the AI model used across all pages</div>
+          </div>
+          <select id="defaultModelSelect" onchange="saveDefaultModel(this.value)">
+            <option value="claude-haiku-4-5-20251001">Haiku 4.5 — Fast</option>
+            <option value="claude-sonnet-4-6">Sonnet 4.6 — Balanced</option>
+            <option value="claude-opus-4-7">Opus 4.7 — Deep</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Section 3: Account & Sync -->
+      <div class="settings-section">
+        <div class="settings-section-title">Account &amp; Sync</div>
+        <div class="settings-section-sub">Sign in with Google to sync your portfolio and watchlist across devices via Firebase.</div>
+
+        <div id="accountSection">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Section 4: Data Management -->
+      <div class="settings-section">
+        <div class="settings-section-title">Data Management</div>
+        <div class="settings-section-sub">Export or clear your local data.</div>
+
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Export Portfolio</div>
+            <div class="settings-desc">Download your portfolio as a JSON file</div>
+          </div>
+          <button class="btn btn-ghost" onclick="exportPortfolio()">Export JSON</button>
+        </div>
+
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Clear All Data</div>
+            <div class="settings-desc">Removes all locally stored data including portfolio, watchlist, and API keys</div>
+          </div>
+          <button class="btn btn-ghost" style="color:var(--red);border-color:var(--red)" onclick="clearAllData()">Clear All Data</button>
+        </div>
+
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+          <div style="font-size:12px;color:var(--text-dimmer)">
+            StockBuddy v2.0 &nbsp;·&nbsp; Built by Fadi &nbsp;·&nbsp;
+            <a href="https://github.com" target="_blank" rel="noopener" style="color:var(--text-dimmer)">GitHub</a>
+          </div>
+          <div style="font-size:11px;color:var(--text-dimmer);margin-top:6px;line-height:1.7">
+            <strong style="color:var(--yellow)">Disclaimer:</strong>
+            StockBuddy is for educational purposes only. Nothing here is financial advice.
+            All analysis is AI-generated and may be inaccurate. Always do your own research before trading.
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div><!-- /.main-column -->
+</div><!-- /.app-layout -->
+
+<!-- Bottom nav -->
+<nav class="bottom-nav">
+  <a href="index.html"     data-page="analysis"> <span class="bnav-icon">⚡</span>Analysis</a>
+  <a href="research.html"  data-page="research">  <span class="bnav-icon">🔭</span>Research</a>
+  <a href="portfolio.html" data-page="portfolio"><span class="bnav-icon">📊</span>Portfolio</a>
+  <a href="settings.html"  data-page="settings"> <span class="bnav-icon">⚙</span>Settings</a>
+</nav>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/shared.js"></script>
+<script>
+// ─────────────────────────────────────────────
+//  API KEY
+// ─────────────────────────────────────────────
+function saveKey() {
+  const k = document.getElementById('apiKeyInput').value.trim();
+  if (!k.startsWith('sk-ant-')) {
+    const errEl = document.getElementById('keyErrorBox');
+    errEl.textContent = '⚠ Key must start with sk-ant-';
+    errEl.classList.add('active');
+    return;
+  }
+  localStorage.setItem('sb_key', k);
+  document.getElementById('apiKeyInput').value = '';
+  document.getElementById('keyErrorBox').classList.remove('active');
+  applyKeySaved(true);
+}
+
+function clearKey() {
+  localStorage.removeItem('sb_key');
+  applyKeySaved(false);
+}
+
+function applyKeySaved(saved) {
+  document.getElementById('keyNotSaved').style.display    = saved ? 'none'  : 'block';
+  document.getElementById('keySavedState').style.display  = saved ? 'block' : 'none';
+}
+
+// ─────────────────────────────────────────────
+//  THEME (local override — settings page has its own toggle label)
+// ─────────────────────────────────────────────
+function toggleThemeSettings() {
+  const current = localStorage.getItem('sb_theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  updateThemeLabel(next);
+}
+
+function updateThemeLabel(theme) {
+  const lbl = document.getElementById('themeToggleSettingsLabel');
+  if (lbl) lbl.textContent = theme === 'dark' ? 'Dark Mode' : 'Light Mode';
+}
+
+// ─────────────────────────────────────────────
+//  DEFAULT MODEL
+// ─────────────────────────────────────────────
+function saveDefaultModel(val) {
+  localStorage.setItem('sb_model', val);
+}
+
+function loadDefaultModel() {
+  const saved = localStorage.getItem('sb_model');
+  if (saved) {
+    const sel = document.getElementById('defaultModelSelect');
+    if (sel) sel.value = saved;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  ACCOUNT SECTION
+// ─────────────────────────────────────────────
+function updateAccountSection(user) {
+  const el = document.getElementById('accountSection');
+  if (!el) return;
+
+  if (!FIREBASE_READY) {
+    el.innerHTML = `
+      <div style="margin-bottom:16px">
+        <div style="background:var(--yellow-dim);border:1px solid var(--yellow-border);border-radius:8px;padding:14px 16px;font-size:13px;color:var(--yellow);line-height:1.7">
+          <strong style="display:block;margin-bottom:6px">Firebase not configured</strong>
+          To enable Google sign-in and cloud sync, paste your Firebase project credentials into
+          <code>js/firebase-config.js</code>. Until then, all data is stored locally only.
+        </div>
+      </div>
+      <div class="firebase-config-box">
+        <span class="key">window.FIREBASE_CONFIG</span> = {<br>
+        &nbsp;&nbsp;<span class="key">apiKey</span>: <span class="val">"PASTE_YOUR_API_KEY_HERE"</span>,<br>
+        &nbsp;&nbsp;<span class="key">authDomain</span>: <span class="val">"PASTE_YOUR_AUTH_DOMAIN_HERE"</span>,<br>
+        &nbsp;&nbsp;<span class="key">projectId</span>: <span class="val">"PASTE_YOUR_PROJECT_ID_HERE"</span>,<br>
+        &nbsp;&nbsp;<span class="key">storageBucket</span>: <span class="val">"PASTE_YOUR_STORAGE_BUCKET_HERE"</span>,<br>
+        &nbsp;&nbsp;<span class="key">messagingSenderId</span>: <span class="val">"PASTE_YOUR_MESSAGING_SENDER_ID_HERE"</span>,<br>
+        &nbsp;&nbsp;<span class="key">appId</span>: <span class="val">"PASTE_YOUR_APP_ID_HERE"</span>,<br>
+        };
+      </div>`;
+    return;
+  }
+
+  if (!user) {
+    el.innerHTML = `
+      <div style="margin-bottom:16px;font-size:13px;color:var(--text-dim)">
+        You are using StockBuddy in local mode. Sign in to sync your data across devices.
+      </div>
+      <a href="login.html" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;padding:10px 20px;font-size:14px">
+        Sign in with Google
+      </a>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="settings-row">
+      <div style="display:flex;align-items:center;gap:12px">
+        ${user.photoURL ? `<img src="${user.photoURL}" style="width:40px;height:40px;border-radius:50%;border:1px solid var(--border)" alt="avatar" />` : ''}
+        <div>
+          <div class="settings-label">${user.displayName || 'User'}</div>
+          <div class="settings-desc">${user.email || ''}</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" onclick="signOut()">Sign Out</button>
+    </div>
+    <div style="font-size:12px;color:var(--text-dimmer);margin-top:8px">
+      Your portfolio and watchlist are automatically synced to Firebase Firestore.
+    </div>`;
+}
+
+// ─────────────────────────────────────────────
+//  EXPORT PORTFOLIO
+// ─────────────────────────────────────────────
+function exportPortfolio() {
+  const portfolio = loadPortfolio();
+  const data = JSON.stringify({ portfolio, exportedAt: new Date().toISOString() }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `stockbuddy-portfolio-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ─────────────────────────────────────────────
+//  CLEAR ALL DATA
+// ─────────────────────────────────────────────
+function clearAllData() {
+  if (!confirm('Are you sure you want to clear ALL local data? This includes your portfolio, watchlist, API keys, and cached analysis. This cannot be undone.')) return;
+  localStorage.clear();
+  window.location.href = 'index.html';
+}
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+requireAuth(function(user) {
+  initSharedUI('settings');
+  applyKeySaved(!!localStorage.getItem('sb_key'));
+  updateAccountSection(user);
+  loadDefaultModel();
+  updateThemeLabel(localStorage.getItem('sb_theme') || 'dark');
+});
+</script>
+</body>
+</html>
