@@ -7,151 +7,137 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/app.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { fontFamily: { mono: ['"JetBrains Mono"', 'monospace'] } } } }</script>
+  <script>(function(){var t=localStorage.getItem('sb_theme')||'dark';document.documentElement.setAttribute('data-theme',t);})()</script>
 </head>
 <body>
 
 <!-- Sidebar overlay -->
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+<div id="sidebarOverlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/50 z-[150] hidden"></div>
 
-<div class="app-layout">
-
-  <!-- Sidebar -->
-  <nav class="sidebar" id="sidebar">
-    <div class="sidebar-logo">
-      <div class="sidebar-wordmark"><span class="stock">Stock</span><span class="buddy">Buddy</span></div>
-      <small>by Fadi</small>
+<!-- Sidebar -->
+<nav id="sidebar" class="fixed top-0 left-0 bottom-0 w-56 flex flex-col overflow-y-auto z-[200] -translate-x-full lg:translate-x-0 transition-transform duration-300" style="background:var(--bg2);border-right:1px solid var(--border)">
+  <div style="padding:18px 20px 16px;border-bottom:1px solid var(--border);flex-shrink:0">
+    <div class="sidebar-wordmark"><span class="stock">Stock</span><span class="buddy">Buddy</span></div>
+    <small style="font-size:11px;color:var(--text-dim);display:block;margin-top:2px">by Fadi</small>
+  </div>
+  <div style="padding:10px;flex:1">
+    <a href="index.html"     class="sidebar-nav-item" data-page="analysis"> <span class="nav-icon">⚡</span> Analysis</a>
+    <a href="research.html"  class="sidebar-nav-item" data-page="research">  <span class="nav-icon">🔭</span> Research</a>
+    <a href="portfolio.html" class="sidebar-nav-item" data-page="portfolio"><span class="nav-icon">📊</span> Portfolio</a>
+    <a href="settings.html"  class="sidebar-nav-item" data-page="settings"> <span class="nav-icon">⚙</span> Settings</a>
+  </div>
+  <div style="padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0">
+    <div class="sidebar-user">
+      <img class="sidebar-avatar" id="sidebarAvatar" style="display:none" alt="avatar" />
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name"  id="sidebarUserName">—</div>
+        <div class="sidebar-user-email" id="sidebarUserEmail">Loading…</div>
+      </div>
     </div>
-    <div class="sidebar-nav">
-      <a href="index.html"     class="sidebar-nav-item" data-page="analysis"> <span class="nav-icon">⚡</span> Analysis</a>
-      <a href="research.html"  class="sidebar-nav-item" data-page="research">  <span class="nav-icon">🔭</span> Research</a>
-      <a href="portfolio.html" class="sidebar-nav-item" data-page="portfolio"><span class="nav-icon">📊</span> Portfolio</a>
-      <a href="settings.html"  class="sidebar-nav-item" data-page="settings"> <span class="nav-icon">⚙</span> Settings</a>
+    <button class="sidebar-signout" onclick="signOut()">Sign out</button>
+  </div>
+</nav>
+
+<!-- Main column -->
+<div class="lg:ml-56 flex flex-col min-h-screen">
+
+  <!-- Topbar -->
+  <header class="sticky top-0 z-[100] shrink-0 flex items-center justify-between gap-4 px-4 lg:px-7 h-14" style="background:var(--bg2);border-bottom:1px solid var(--border)">
+    <div class="flex items-center gap-3 min-w-0">
+      <button class="hamburger lg:hidden" onclick="toggleSidebar()">☰</button>
+      <h1 class="page-title">⚡ Analysis</h1>
+      <div class="market-pill">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="marketText">—</span>
+      </div>
     </div>
-    <div class="sidebar-footer">
-      <div class="sidebar-user">
-        <img class="sidebar-avatar" id="sidebarAvatar" style="display:none" alt="avatar" />
-        <div class="sidebar-user-info">
-          <div class="sidebar-user-name"  id="sidebarUserName">—</div>
-          <div class="sidebar-user-email" id="sidebarUserEmail">Loading…</div>
-        </div>
-      </div>
-      <button class="sidebar-signout" onclick="signOut()">Sign out</button>
+    <div class="flex items-center gap-3 shrink-0">
+      <div class="clock mono hidden sm:block" id="clock">--:-- ET</div>
+      <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()">🌙</button>
     </div>
-  </nav>
+  </header>
 
-  <!-- Main column -->
-  <div class="main-column">
+  <!-- Page content -->
+  <main class="flex-1 p-4 lg:p-7 pb-24 lg:pb-7 w-full max-w-[1360px]">
 
-    <!-- Topbar -->
-    <header class="topbar">
-      <div class="topbar-left">
-        <button class="hamburger" onclick="toggleSidebar()">☰</button>
-        <h1 class="page-title">⚡ Analysis</h1>
-        <div class="market-pill">
-          <div class="status-dot" id="statusDot"></div>
-          <span id="marketText">—</span>
+    <div class="print-header">StockBuddy — Daily Trading Intelligence</div>
+    <div class="print-subheader" id="printSubheader">S&amp;P 500 Intraday Analysis</div>
+
+    <div class="no-key-banner" id="noKeyBanner" style="display:none">
+      ⚠ No Anthropic API key — <a href="settings.html">go to Settings</a> to add your key.
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+      <div class="action-left">
+        <div class="action-session-title" id="sessionTitle">Loading…</div>
+        <div class="action-session-desc"  id="sessionDesc">Detecting session</div>
+      </div>
+      <div class="action-right">
+        <div class="chip-anthro" id="keySaved">
+          <span>● Anthropic</span>
+          <button onclick="window.location.href='settings.html'">Change</button>
         </div>
+        <span class="session-badge morning" id="sessionBadge">—</span>
+        <select id="modelSelect">
+          <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — Fast</option>
+          <option value="claude-sonnet-4-6">Sonnet 4.6 — Balanced</option>
+          <option value="claude-opus-4-7">Opus 4.7 — Deep</option>
+        </select>
+        <button class="btn-generate" id="genBtn" onclick="generate()" disabled>
+          <span id="genIcon">⚡</span>
+          <span id="genLabel">Generate Analysis</span>
+        </button>
+        <button class="btn-watchlist" id="watchlistBtn" onclick="window.location.href='research.html'" style="display:none">
+          <span id="wlIcon">🔭</span>
+          <span id="wlLabel">Research Opens</span>
+        </button>
       </div>
-      <div class="topbar-right">
-        <div class="clock mono" id="clock">--:-- ET</div>
-        <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()">🌙</button>
-      </div>
-    </header>
+    </div>
 
-    <!-- Page content -->
-    <main class="page-content">
+    <div class="error-box" id="errorBox"></div>
 
-      <!-- Print-only header (hidden on screen) -->
-      <div class="print-header">StockBuddy — Daily Trading Intelligence</div>
-      <div class="print-subheader" id="printSubheader">S&P 500 Intraday Analysis</div>
+    <div class="loading-box" id="loadingBox">
+      <div class="spinner"></div>
+      <div class="loading-status"><em id="loadMsg">Initialising…</em></div>
+      <div id="stepsEl"></div>
+    </div>
 
-      <!-- No API key banner -->
-      <div class="no-key-banner" id="noKeyBanner" style="display:none">
-        ⚠ No Anthropic API key — <a href="settings.html">go to Settings</a> to add your key.
-      </div>
+    <div class="themes-row" id="themesRow">
+      <span class="themes-label">Today's Themes:</span>
+    </div>
 
-      <!-- Action Bar -->
-      <div class="action-bar">
-        <div class="action-left">
-          <div class="action-session-title" id="sessionTitle">Loading…</div>
-          <div class="action-session-desc"  id="sessionDesc">Detecting session</div>
+    <div class="overview-box" id="overviewBox">
+      <div class="overview-label">Market Overview</div>
+      <div class="overview-text" id="overviewText"></div>
+    </div>
+
+    <div class="results" id="results">
+      <div>
+        <div class="col-header">
+          <div class="col-title buy">▲ BUY</div>
+          <div class="col-count" id="buyCount">—</div>
         </div>
-        <div class="action-right">
-
-          <div class="chip-anthro" id="keySaved">
-            <span>● Anthropic</span>
-            <button onclick="window.location.href='settings.html'">Change</button>
-          </div>
-
-          <span class="session-badge morning" id="sessionBadge">—</span>
-
-          <select id="modelSelect">
-            <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — Fast</option>
-            <option value="claude-sonnet-4-6">Sonnet 4.6 — Balanced</option>
-            <option value="claude-opus-4-7">Opus 4.7 — Deep</option>
-          </select>
-
-          <button class="btn-generate" id="genBtn" onclick="generate()" disabled>
-            <span id="genIcon">⚡</span>
-            <span id="genLabel">Generate Analysis</span>
-          </button>
-
-          <button class="btn-watchlist" id="watchlistBtn" onclick="window.location.href='research.html'" style="display:none">
-            <span id="wlIcon">🔭</span>
-            <span id="wlLabel">Research Opens</span>
-          </button>
-
+        <div id="buyCards"></div>
+      </div>
+      <div>
+        <div class="col-header">
+          <div class="col-title sell">▼ SELL / SHORT</div>
+          <div class="col-count" id="sellCount">—</div>
         </div>
+        <div id="sellCards"></div>
       </div>
+    </div>
 
-      <!-- Error box -->
-      <div class="error-box" id="errorBox"></div>
+    <div class="timestamp" id="timestamp"></div>
 
-      <!-- Loading -->
-      <div class="loading-box" id="loadingBox">
-        <div class="spinner"></div>
-        <div class="loading-status"><em id="loadMsg">Initialising…</em></div>
-        <div id="stepsEl"></div>
-      </div>
-
-      <!-- Key Themes -->
-      <div class="themes-row" id="themesRow">
-        <span class="themes-label">Today's Themes:</span>
-      </div>
-
-      <!-- Market Overview -->
-      <div class="overview-box" id="overviewBox">
-        <div class="overview-label">Market Overview</div>
-        <div class="overview-text" id="overviewText"></div>
-      </div>
-
-      <!-- Results -->
-      <div class="results" id="results">
-        <div>
-          <div class="col-header">
-            <div class="col-title buy">▲ BUY</div>
-            <div class="col-count" id="buyCount">—</div>
-          </div>
-          <div id="buyCards"></div>
-        </div>
-        <div>
-          <div class="col-header">
-            <div class="col-title sell">▼ SELL / SHORT</div>
-            <div class="col-count" id="sellCount">—</div>
-          </div>
-          <div id="sellCards"></div>
-        </div>
-      </div>
-
-      <!-- Timestamp -->
-      <div class="timestamp" id="timestamp"></div>
-
-    </main>
-  </div><!-- /.main-column -->
-</div><!-- /.app-layout -->
+  </main>
+</div>
 
 <!-- Bottom nav -->
-<nav class="bottom-nav">
+<nav class="bottom-nav fixed bottom-0 inset-x-0 z-[100] flex lg:hidden" style="background:var(--bg2);border-top:1px solid var(--border)">
   <a href="index.html"     data-page="analysis"> <span class="bnav-icon">⚡</span>Analysis</a>
   <a href="research.html"  data-page="research">  <span class="bnav-icon">🔭</span>Research</a>
   <a href="portfolio.html" data-page="portfolio"><span class="bnav-icon">📊</span>Portfolio</a>
@@ -164,67 +150,47 @@
 <script src="js/firebase-config.js"></script>
 <script src="js/shared.js"></script>
 <script>
-// ─────────────────────────────────────────────
-//  PAGE-LEVEL TICK (session banner + watchlist btn)
-// ─────────────────────────────────────────────
 function tickSession() {
   const et   = etNow();
   const sess = sessionOf(et);
-
   const title  = document.getElementById('sessionTitle');
   const desc   = document.getElementById('sessionDesc');
   const badge  = document.getElementById('sessionBadge');
-
   const labels = {
-    premarket:  ['Pre-Market Morning Brief',   'Before open — research and plan your entries',       'morning',   'Morning Session'],
-    morning:    ['Mid-Session Analysis',        'Market open — track momentum and adjust positions',  'morning',   'Market Open'],
-    afternoon:  ['Afternoon Close Review',      '~30 min to close — final moves and overnight holds', 'afternoon', '3:30 PM Session'],
-    afterhours: ['After-Hours Wrap-Up',         'Market closed — debrief and prep for tomorrow',      'after',     'After Hours'],
+    premarket:  ['Pre-Market Morning Brief',   'Before open — research and plan your entries',        'morning',   'Morning Session'],
+    morning:    ['Mid-Session Analysis',        'Market open — track momentum and adjust positions',   'morning',   'Market Open'],
+    afternoon:  ['Afternoon Close Review',      '~30 min to close — final moves and overnight holds',  'afternoon', '3:30 PM Session'],
+    afterhours: ['After-Hours Wrap-Up',         'Market closed — debrief and prep for tomorrow',       'after',     'After Hours'],
   };
   const [t, d, cls, bl] = labels[sess];
   if (title) title.textContent = t;
   if (desc)  desc.textContent  = d;
-  if (badge) {
-    badge.textContent = bl;
-    badge.className   = 'session-badge ' + cls;
-  }
-
-  // Show watchlist button only when market is closed
+  if (badge) { badge.textContent = bl; badge.className = 'session-badge ' + cls; }
   const marketClosed = sess === 'afterhours' || sess === 'premarket';
-  const wBtn  = document.getElementById('watchlistBtn');
-  const wLbl  = document.getElementById('wlLabel');
+  const wBtn = document.getElementById('watchlistBtn');
+  const wLbl = document.getElementById('wlLabel');
   if (wBtn) {
     wBtn.style.display = marketClosed ? 'flex' : 'none';
     if (wLbl) wLbl.textContent = sess === 'premarket' ? "Research Today's Open" : "Research Tomorrow's Open";
   }
 }
 
-// ─────────────────────────────────────────────
-//  API KEY STATE
-// ─────────────────────────────────────────────
 function applyKeySaved(saved) {
   const banner = document.getElementById('noKeyBanner');
   if (banner) banner.style.display = saved ? 'none' : 'block';
-  const keySavedChip = document.getElementById('keySaved');
-  if (keySavedChip) keySavedChip.classList.toggle('visible', saved);
+  const chip = document.getElementById('keySaved');
+  if (chip) chip.classList.toggle('visible', saved);
   const genBtn = document.getElementById('genBtn');
   if (genBtn) genBtn.disabled = !saved;
 }
 
-// ─────────────────────────────────────────────
-//  ERROR / LOADING
-// ─────────────────────────────────────────────
 function showError(msg) {
   const el = document.getElementById('errorBox');
   el.textContent = '⚠ ' + msg;
   el.classList.add('active');
 }
-function clearError() {
-  document.getElementById('errorBox').classList.remove('active');
-}
-function updateLoad(msg) {
-  document.getElementById('loadMsg').innerHTML = `<em>${msg}</em>`;
-}
+function clearError() { document.getElementById('errorBox').classList.remove('active'); }
+function updateLoad(msg) { document.getElementById('loadMsg').innerHTML = `<em>${msg}</em>`; }
 function startLoading() {
   document.getElementById('loadingBox').classList.add('active');
   document.getElementById('results').classList.remove('active');
@@ -234,13 +200,8 @@ function startLoading() {
   document.getElementById('stepsEl').innerHTML = '';
   updateLoad('Starting…');
 }
-function stopLoading() {
-  document.getElementById('loadingBox').classList.remove('active');
-}
+function stopLoading() { document.getElementById('loadingBox').classList.remove('active'); }
 
-// ─────────────────────────────────────────────
-//  PROMPTS
-// ─────────────────────────────────────────────
 function systemPrompt() {
   return `You are an S&P 500 intraday day trader. All trades open and close the same session — no overnight holds.
 
@@ -263,161 +224,78 @@ Hard rules:
 
 function userPrompt(sess, priceCtx, customWl) {
   const etNow_ = etNow();
-  const today = etNow_.toLocaleDateString('en-US', {
-    timeZone: 'America/New_York', weekday:'long', year:'numeric', month:'long', day:'numeric'
-  });
+  const today = etNow_.toLocaleDateString('en-US', { timeZone:'America/New_York', weekday:'long', year:'numeric', month:'long', day:'numeric' });
   const dayOfWeek = etNow_.toLocaleDateString('en-US', { timeZone:'America/New_York', weekday:'long' });
-  const isMonday  = dayOfWeek === 'Monday';
-
+  const isMonday = dayOfWeek === 'Monday';
   const prices = priceCtx
     ? `\nLIVE PRICES RIGHT NOW — anchor ALL entry/exit/stop levels to these exact prices:\n${priceCtx}\n`
     : '\n[No live price feed — use your web search to find current prices before setting levels]\n';
-
   const customSection = customWl && customWl.length
-    ? `\nADDITIONAL WATCHLIST TICKERS (include analysis for these if relevant): ${customWl.join(', ')}\n`
-    : '';
-
-  const dateBlock = `TODAY IS ${today.toUpperCase()}. You are generating analysis FOR THIS DATE ONLY.
-DO NOT reference, repeat, or recycle analysis from any previous trading session (especially not from last Friday).
-All picks, catalysts, and price levels must reflect what is happening TODAY, ${today}.`;
-
+    ? `\nADDITIONAL WATCHLIST TICKERS (include analysis for these if relevant): ${customWl.join(', ')}\n` : '';
+  const dateBlock = `TODAY IS ${today.toUpperCase()}. You are generating analysis FOR THIS DATE ONLY.\nDO NOT reference, repeat, or recycle analysis from any previous trading session.\nAll picks, catalysts, and price levels must reflect what is happening TODAY, ${today}.`;
   if (sess === 'premarket' || sess === 'morning') {
-    const mondayExtra = isMonday
-      ? `\nIt is Monday — search specifically for: weekend earnings reactions, geopolitical/macro news from the weekend, Sunday night futures direction, analyst calls published this morning, any gap-up/gap-down setups driven by weekend news.`
-      : '';
-    return `${dateBlock}
-${prices}${customSection}
-${mondayExtra}
-Search for: today's pre-market futures direction, overnight news since yesterday's close, earnings reports due today, economic data releases today, analyst upgrades/downgrades published today, unusual pre-market volume.
-
-Give me 5 BUY + 5 SELL intraday picks for ${today}. All trades must open and close today by 4PM ET. Entry/exit/stop anchored to live prices above. Tight stops (1-2%).`;
+    const mondayExtra = isMonday ? `\nIt is Monday — search specifically for: weekend earnings reactions, geopolitical/macro news from the weekend, Sunday night futures direction, analyst calls published this morning, any gap-up/gap-down setups driven by weekend news.` : '';
+    return `${dateBlock}\n${prices}${customSection}${mondayExtra}\nSearch for: today's pre-market futures direction, overnight news since yesterday's close, earnings reports due today, economic data releases today, analyst upgrades/downgrades published today, unusual pre-market volume.\n\nGive me 5 BUY + 5 SELL intraday picks for ${today}. All trades must open and close today by 4PM ET. Entry/exit/stop anchored to live prices above. Tight stops (1-2%).`;
   }
-
   if (sess === 'afternoon') {
-    return `${dateBlock}
-${prices}${customSection}
-Search for: today's (${today}) biggest S&P 500 movers right now, unusual options flow today, any late-breaking catalysts in the last hour, earnings reports due after today's close.
-
-5 BUY (momentum into close) + 5 SELL (fade into close) for the final 30 min of today's session. Close all positions by 4PM ET today. Levels anchored to live prices above.`;
+    return `${dateBlock}\n${prices}${customSection}\nSearch for: today's (${today}) biggest S&P 500 movers right now, unusual options flow today, any late-breaking catalysts in the last hour, earnings reports due after today's close.\n\n5 BUY (momentum into close) + 5 SELL (fade into close) for the final 30 min of today's session. Close all positions by 4PM ET today. Levels anchored to live prices above.`;
   }
-
-  return `${dateBlock}
-${prices}${customSection}
-Search for: after-hours earnings reactions tonight (${today}), analyst calls out today, macro events scheduled for tomorrow, any breaking news after today's close.
-
-5 BUY + 5 SELL gap-play setups for tomorrow's open based on what happened today, ${today}. All trades close by 4PM ET tomorrow.`;
+  return `${dateBlock}\n${prices}${customSection}\nSearch for: after-hours earnings reactions tonight (${today}), analyst calls out today, macro events scheduled for tomorrow, any breaking news after today's close.\n\n5 BUY + 5 SELL gap-play setups for tomorrow's open based on what happened today, ${today}. All trades close by 4PM ET tomorrow.`;
 }
 
-// ─────────────────────────────────────────────
-//  API CALL (with agentic tool-use loop)
-// ─────────────────────────────────────────────
 async function callClaude(apiKey, model, sess, priceCtx, customWl) {
   let messages = [{ role:'user', content: userPrompt(sess, priceCtx, customWl) }];
   const MAX_TURNS = 12;
-
   for (let turn = 0; turn < MAX_TURNS; turn++) {
     let res;
     for (let attempt = 0; attempt < 5; attempt++) {
       res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: {
-          'Content-Type':                            'application/json',
-          'x-api-key':                               apiKey,
-          'anthropic-version':                       '2023-06-01',
-          'anthropic-beta':                          'web-search-2025-03-05',
-          'anthropic-dangerous-direct-browser-access':'true',
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: 8000,
-          tool_choice: { type: 'auto', disable_parallel_tool_use: true },
-          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-          system: systemPrompt(),
-          messages,
-        }),
+        headers: { 'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'web-search-2025-03-05','anthropic-dangerous-direct-browser-access':'true' },
+        body: JSON.stringify({ model, max_tokens:8000, tool_choice:{type:'auto',disable_parallel_tool_use:true}, tools:[{type:'web_search_20250305',name:'web_search'}], system:systemPrompt(), messages }),
       });
       if (res.status !== 429 && res.status !== 529) break;
       const wait = parseInt(res.headers.get('retry-after') || '60', 10);
-      for (let s = wait; s > 0; s--) {
-        updateLoad(`⏳ Rate limit — retrying in ${s}s…`);
-        await new Promise(r => setTimeout(r, 1000));
-      }
+      for (let s = wait; s > 0; s--) { updateLoad(`⏳ Rate limit — retrying in ${s}s…`); await new Promise(r => setTimeout(r, 1000)); }
     }
-
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
-      throw new Error(e.error?.message || `HTTP ${res.status} — ${res.statusText}`);
-    }
-
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
     const data = await res.json();
     if (data.type === 'error') throw new Error(data.error?.message || 'API error');
-
     if (data.stop_reason === 'end_turn') return data;
-
     if (data.stop_reason === 'tool_use') {
-      const results = data.content
-        .filter(b => b.type === 'tool_use')
-        .map(b => ({ type:'tool_result', tool_use_id: b.id, content: [] }));
-      // Strip tool_result blocks — Anthropic embeds full search pages here, causing context blowup
-      const assistantContent = data.content.filter(b => b.type !== 'tool_result');
-      messages = [
-        messages[0],
-        { role: 'assistant', content: assistantContent },
-        ...(results.length ? [{ role:'user', content: results }] : []),
-      ];
+      const results = data.content.filter(b=>b.type==='tool_use').map(b=>({type:'tool_result',tool_use_id:b.id,content:[]}));
+      const assistantContent = data.content.filter(b=>b.type!=='tool_result');
+      messages = [messages[0],{role:'assistant',content:assistantContent},...(results.length?[{role:'user',content:results}]:[])];
       continue;
     }
-
     return data;
   }
-
   throw new Error('Analysis loop exceeded maximum turns. Please try again.');
 }
 
-// ─────────────────────────────────────────────
-//  RENDER
-// ─────────────────────────────────────────────
 function render(analysis) {
   const themesRow = document.getElementById('themesRow');
   themesRow.innerHTML = '<span class="themes-label">Today\'s Themes:</span>';
-  (analysis.key_themes || []).forEach(t => {
-    const el = document.createElement('span');
-    el.className = 'theme-tag';
-    el.textContent = t;
-    themesRow.appendChild(el);
-  });
+  (analysis.key_themes || []).forEach(t => { const el = document.createElement('span'); el.className = 'theme-tag'; el.textContent = t; themesRow.appendChild(el); });
   themesRow.classList.add('active');
-
   document.getElementById('overviewText').textContent = analysis.market_overview || '';
   document.getElementById('overviewBox').classList.add('active');
-
   const buys  = (analysis.suggestions || []).filter(s => s.action === 'BUY');
   const sells = (analysis.suggestions || []).filter(s => s.action === 'SELL');
-
   document.getElementById('buyCount').textContent  = buys.length  + ' picks';
   document.getElementById('sellCount').textContent = sells.length + ' picks';
   document.getElementById('buyCards').innerHTML  = buys.map(cardHTML).join('');
   document.getElementById('sellCards').innerHTML = sells.map(cardHTML).join('');
-
   document.getElementById('results').classList.add('active');
-
-  const ts = new Date().toLocaleString('en-US', {
-    timeZone:'America/New_York', dateStyle:'full', timeStyle:'medium'
-  });
+  const ts = new Date().toLocaleString('en-US', { timeZone:'America/New_York', dateStyle:'full', timeStyle:'medium' });
   const tsEl = document.getElementById('timestamp');
   tsEl.textContent = 'Analysis generated: ' + ts + ' ET';
   tsEl.classList.add('active');
   const ph = document.getElementById('printSubheader');
   if (ph) ph.textContent = 'S&P 500 Intraday Analysis — Generated ' + ts + ' ET';
-
-  try {
-    localStorage.setItem('sb_cache', JSON.stringify({ ts: Date.now(), analysis }));
-  } catch(e) { /* ignore */ }
+  try { localStorage.setItem('sb_cache', JSON.stringify({ ts: Date.now(), analysis })); } catch(e) {}
 }
 
-// ─────────────────────────────────────────────
-//  LOAD CACHE
-// ─────────────────────────────────────────────
 function loadCache() {
   try {
     const raw = localStorage.getItem('sb_cache');
@@ -427,100 +305,69 @@ function loadCache() {
     render(analysis);
     const label = document.getElementById('timestamp');
     if (ageH > 6) label.innerHTML += ' <span class="stale-badge">Stale — refresh for latest</span>';
-  } catch(e) { /* ignore */ }
+  } catch(e) {}
 }
 
-// ─────────────────────────────────────────────
-//  GENERATE
-// ─────────────────────────────────────────────
 async function generate() {
   const apiKey = localStorage.getItem('sb_key');
   if (!apiKey) { showError('Please enter your Anthropic API key first.'); return; }
-
   clearError();
-
-  const model  = document.getElementById('modelSelect').value;
-  const sess   = sessionOf(etNow());
-  const btn    = document.getElementById('genBtn');
-  const lbl    = document.getElementById('genLabel');
-  const icon   = document.getElementById('genIcon');
-
-  btn.disabled     = true;
-  lbl.textContent  = 'Analysing…';
-  icon.textContent = '⏳';
+  const model = document.getElementById('modelSelect').value;
+  const sess  = sessionOf(etNow());
+  const btn   = document.getElementById('genBtn');
+  const lbl   = document.getElementById('genLabel');
+  const icon  = document.getElementById('genIcon');
+  btn.disabled = true; lbl.textContent = 'Analysing…'; icon.textContent = '⏳';
   startLoading();
-
   try {
-    let priceMap = {};
-    let priceCtx = '';
-
+    let priceMap = {}, priceCtx = '';
     updateLoad('📡 Fetching live prices…');
     const customWl   = loadCustomWatchlist();
     const allSymbols = [...new Set([...SP500_TICKERS, ...customWl])];
     const prices     = await fetchLivePricesYahoo(allSymbols);
     prices.forEach(p => { priceMap[p.ticker] = p; });
     priceCtx = buildPriceContext(prices);
-
     updateLoad('🌐 Searching news and building analysis…');
     const data = await callClaude(apiKey, model, sess, priceCtx, customWl);
     const text = extractText(data);
     if (!text.trim()) throw new Error('Empty response — please try again.');
-
     updateLoad('✅ Parsing recommendations…');
     let analysis;
-    try {
-      analysis = sanitizeParsed(parseAnalysis(text));
-    } catch (parseErr) {
+    try { analysis = sanitizeParsed(parseAnalysis(text)); }
+    catch (parseErr) {
       if (!parseErr.message.startsWith('PARSE_FAIL:')) throw parseErr;
       updateLoad('⚠ Reformatting response…');
       const fixedText = await reformatAsJson(apiKey, model, text);
       analysis = sanitizeParsed(parseAnalysis(fixedText));
     }
-
     const extended = isExtendedHours();
     (analysis.suggestions || []).forEach(s => {
-      const p = priceMap[s.ticker];
-      if (!p) return;
-      if (extended && p.extPrice != null) {
-        s.live_price = p.extPrice; s.live_dp = p.extDp || 0;
-        s.price_is_close = false; s.is_extended = true; s.ext_session = sess;
-      } else {
-        s.live_price = p.price; s.live_dp = p.dp;
-        s.price_is_close = extended; s.is_extended = false;
-      }
+      const p = priceMap[s.ticker]; if (!p) return;
+      if (extended && p.extPrice != null) { s.live_price = p.extPrice; s.live_dp = p.extDp||0; s.price_is_close = false; s.is_extended = true; s.ext_session = sess; }
+      else { s.live_price = p.price; s.live_dp = p.dp; s.price_is_close = extended; s.is_extended = false; }
     });
-
     render(analysis);
-
   } catch (err) {
     const msg = err.message.startsWith('PARSE_FAIL:')
-      ? 'Could not parse response as JSON (auto-reformat also failed).\n\nWhat Claude returned:\n' + err.message.slice(11)
-      : err.message;
+      ? 'Could not parse response as JSON.\n\nWhat Claude returned:\n' + err.message.slice(11) : err.message;
     showError(msg);
   } finally {
-    stopLoading();
-    btn.disabled     = false;
-    lbl.textContent  = 'Refresh Analysis';
-    icon.textContent = '⚡';
+    stopLoading(); btn.disabled = false; lbl.textContent = 'Refresh Analysis'; icon.textContent = '⚡';
   }
 }
 
-// Keyboard shortcut: Cmd/Ctrl + Enter
 document.addEventListener('keydown', e => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !document.getElementById('genBtn').disabled) {
-    generate();
-  }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !document.getElementById('genBtn').disabled) generate();
 });
 
-// ─────────────────────────────────────────────
-//  INIT
-// ─────────────────────────────────────────────
 requireAuth(function(user) {
   initSharedUI('analysis');
   setInterval(tickSession, 1000);
   tickSession();
   applyKeySaved(!!localStorage.getItem('sb_key'));
   loadCache();
+  const saved = localStorage.getItem('sb_model');
+  if (saved) { const sel = document.getElementById('modelSelect'); if (sel) sel.value = saved; }
 });
 </script>
 </body>
