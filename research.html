@@ -150,12 +150,9 @@
 <script src="js/shared.js"></script>
 <script>
 // ─────────────────────────────────────────────
-//  PAGE-LEVEL TICK (extends base tick from shared.js)
+//  PAGE-LEVEL TICK (session banner + generate button state)
 // ─────────────────────────────────────────────
-const _baseTick = tick;
-function tick() {
-  _baseTick();
-
+function tickSession() {
   const et   = etNow();
   const sess = sessionOf(et);
 
@@ -476,6 +473,8 @@ function renderWatchlist(analysis) {
 // ─────────────────────────────────────────────
 requireAuth(function(user) {
   initSharedUI('research');
+  setInterval(tickSession, 1000);
+  tickSession();
   renderCustomWatchlist();
 
   const keySavedChip = document.getElementById('keySaved');

@@ -165,12 +165,9 @@
 <script src="js/shared.js"></script>
 <script>
 // ─────────────────────────────────────────────
-//  PAGE-LEVEL TICK (extends base tick from shared.js)
+//  PAGE-LEVEL TICK (session banner + watchlist btn)
 // ─────────────────────────────────────────────
-const _baseTick = tick;
-function tick() {
-  _baseTick();
-
+function tickSession() {
   const et   = etNow();
   const sess = sessionOf(et);
 
@@ -520,6 +517,8 @@ document.addEventListener('keydown', e => {
 // ─────────────────────────────────────────────
 requireAuth(function(user) {
   initSharedUI('analysis');
+  setInterval(tickSession, 1000);
+  tickSession();
   applyKeySaved(!!localStorage.getItem('sb_key'));
   loadCache();
 });
