@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>StockBuddy — Analysis</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#3fb950" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="StockBuddy" />
+  <link rel="apple-touch-icon" href="favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/app.css" />
@@ -13,53 +20,12 @@
 </head>
 <body>
 
-<!-- Sidebar overlay -->
-<div id="sidebarOverlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/50 z-[150] hidden"></div>
+<div id="sidebarOverlay"></div>
+<nav id="sidebar"></nav>
 
-<!-- Sidebar -->
-<nav id="sidebar" class="fixed top-0 left-0 bottom-0 w-56 flex flex-col overflow-y-auto z-[200] -translate-x-full lg:translate-x-0 transition-transform duration-300" style="background:var(--bg2);border-right:1px solid var(--border)">
-  <div style="padding:18px 20px 16px;border-bottom:1px solid var(--border);flex-shrink:0">
-    <div class="sidebar-wordmark"><span class="stock">Stock</span><span class="buddy">Buddy</span></div>
-    <small style="font-size:11px;color:var(--text-dim);display:block;margin-top:2px">by Fadi</small>
-  </div>
-  <div style="padding:10px;flex:1">
-    <a href="index.html"     class="sidebar-nav-item" data-page="analysis"> <span class="nav-icon">⚡</span> Analysis</a>
-    <a href="research.html"  class="sidebar-nav-item" data-page="research">  <span class="nav-icon">🔭</span> Research</a>
-    <a href="portfolio.html" class="sidebar-nav-item" data-page="portfolio"><span class="nav-icon">📊</span> Portfolio</a>
-    <a href="settings.html"  class="sidebar-nav-item" data-page="settings"> <span class="nav-icon">⚙</span> Settings</a>
-  </div>
-  <div style="padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0">
-    <div class="sidebar-user">
-      <img class="sidebar-avatar" id="sidebarAvatar" style="display:none" alt="avatar" />
-      <div class="sidebar-user-info">
-        <div class="sidebar-user-name"  id="sidebarUserName">—</div>
-        <div class="sidebar-user-email" id="sidebarUserEmail">Loading…</div>
-      </div>
-    </div>
-    <button class="sidebar-signout" onclick="signOut()">Sign out</button>
-  </div>
-</nav>
-
-<!-- Main column -->
 <div class="lg:ml-56 flex flex-col min-h-screen">
+  <header id="sb-topbar"></header>
 
-  <!-- Topbar -->
-  <header class="sticky top-0 z-[100] shrink-0 flex items-center justify-between gap-4 px-4 lg:px-7 h-14" style="background:var(--bg2);border-bottom:1px solid var(--border)">
-    <div class="flex items-center gap-3 min-w-0">
-      <button class="hamburger lg:hidden" onclick="toggleSidebar()">☰</button>
-      <h1 class="page-title">⚡ Analysis</h1>
-      <div class="market-pill">
-        <div class="status-dot" id="statusDot"></div>
-        <span id="marketText">—</span>
-      </div>
-    </div>
-    <div class="flex items-center gap-3 shrink-0">
-      <div class="clock mono hidden sm:block" id="clock">--:-- ET</div>
-      <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()">🌙</button>
-    </div>
-  </header>
-
-  <!-- Page content -->
   <main class="flex-1 p-4 lg:p-7 pb-24 lg:pb-7 w-full max-w-[1360px]">
 
     <div class="print-header">StockBuddy — Daily Trading Intelligence</div>
@@ -105,15 +71,19 @@
       <div id="stepsEl"></div>
     </div>
 
-    <div class="themes-row" id="themesRow">
-      <span class="themes-label">Today's Themes:</span>
+    <!-- Key Themes — bullet list -->
+    <div id="themesRow" style="display:none;margin-bottom:16px;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:var(--radius);padding:14px 18px;box-shadow:var(--shadow)">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--green);margin-bottom:10px">Today's Themes</div>
+      <ul id="themesList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px"></ul>
     </div>
 
+    <!-- Market Overview -->
     <div class="overview-box" id="overviewBox">
       <div class="overview-label">Market Overview</div>
       <div class="overview-text" id="overviewText"></div>
     </div>
 
+    <!-- Results -->
     <div class="results" id="results">
       <div>
         <div class="col-header">
@@ -136,14 +106,10 @@
   </main>
 </div>
 
-<!-- Bottom nav -->
-<nav class="bottom-nav fixed bottom-0 inset-x-0 z-[100] flex lg:hidden" style="background:var(--bg2);border-top:1px solid var(--border)">
-  <a href="index.html"     data-page="analysis"> <span class="bnav-icon">⚡</span>Analysis</a>
-  <a href="research.html"  data-page="research">  <span class="bnav-icon">🔭</span>Research</a>
-  <a href="portfolio.html" data-page="portfolio"><span class="bnav-icon">📊</span>Portfolio</a>
-  <a href="settings.html"  data-page="settings"> <span class="bnav-icon">⚙</span>Settings</a>
-</nav>
+<nav id="sb-bottomnav"></nav>
 
+<script>window.SB_PAGE = 'analysis';</script>
+<script src="js/nav.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -184,18 +150,14 @@ function applyKeySaved(saved) {
   if (genBtn) genBtn.disabled = !saved;
 }
 
-function showError(msg) {
-  const el = document.getElementById('errorBox');
-  el.textContent = '⚠ ' + msg;
-  el.classList.add('active');
-}
-function clearError() { document.getElementById('errorBox').classList.remove('active'); }
-function updateLoad(msg) { document.getElementById('loadMsg').innerHTML = `<em>${msg}</em>`; }
+function showError(msg) { const el = document.getElementById('errorBox'); el.textContent = '⚠ ' + msg; el.classList.add('active'); }
+function clearError()   { document.getElementById('errorBox').classList.remove('active'); }
+function updateLoad(msg){ document.getElementById('loadMsg').innerHTML = `<em>${msg}</em>`; }
 function startLoading() {
   document.getElementById('loadingBox').classList.add('active');
   document.getElementById('results').classList.remove('active');
   document.getElementById('overviewBox').classList.remove('active');
-  document.getElementById('themesRow').classList.remove('active');
+  document.getElementById('themesRow').style.display = 'none';
   document.getElementById('timestamp').classList.remove('active');
   document.getElementById('stepsEl').innerHTML = '';
   updateLoad('Starting…');
@@ -274,12 +236,21 @@ async function callClaude(apiKey, model, sess, priceCtx, customWl) {
 }
 
 function render(analysis) {
-  const themesRow = document.getElementById('themesRow');
-  themesRow.innerHTML = '<span class="themes-label">Today\'s Themes:</span>';
-  (analysis.key_themes || []).forEach(t => { const el = document.createElement('span'); el.className = 'theme-tag'; el.textContent = t; themesRow.appendChild(el); });
-  themesRow.classList.add('active');
+  // Themes as bullet list
+  const themesRow  = document.getElementById('themesRow');
+  const themesList = document.getElementById('themesList');
+  themesList.innerHTML = '';
+  (analysis.key_themes || []).forEach(t => {
+    const li = document.createElement('li');
+    li.style.cssText = 'display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text)';
+    li.innerHTML = `<span style="color:var(--green);font-weight:700;line-height:1.6;flex-shrink:0">•</span><span>${t}</span>`;
+    themesList.appendChild(li);
+  });
+  if ((analysis.key_themes || []).length) themesRow.style.display = 'block';
+
   document.getElementById('overviewText').textContent = analysis.market_overview || '';
   document.getElementById('overviewBox').classList.add('active');
+
   const buys  = (analysis.suggestions || []).filter(s => s.action === 'BUY');
   const sells = (analysis.suggestions || []).filter(s => s.action === 'SELL');
   document.getElementById('buyCount').textContent  = buys.length  + ' picks';
@@ -287,6 +258,7 @@ function render(analysis) {
   document.getElementById('buyCards').innerHTML  = buys.map(cardHTML).join('');
   document.getElementById('sellCards').innerHTML = sells.map(cardHTML).join('');
   document.getElementById('results').classList.add('active');
+
   const ts = new Date().toLocaleString('en-US', { timeZone:'America/New_York', dateStyle:'full', timeStyle:'medium' });
   const tsEl = document.getElementById('timestamp');
   tsEl.textContent = 'Analysis generated: ' + ts + ' ET';

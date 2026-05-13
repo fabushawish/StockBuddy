@@ -10,50 +10,21 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { fontFamily: { mono: ['"JetBrains Mono"', 'monospace'] } } } }</script>
   <script>(function(){var t=localStorage.getItem('sb_theme')||'dark';document.documentElement.setAttribute('data-theme',t);})()</script>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="apple-touch-icon" href="favicon.svg" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#3fb950" />
 </head>
 <body>
 
-<div id="sidebarOverlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/50 z-[150] hidden"></div>
-
-<nav id="sidebar" class="fixed top-0 left-0 bottom-0 w-56 flex flex-col overflow-y-auto z-[200] -translate-x-full lg:translate-x-0 transition-transform duration-300" style="background:var(--bg2);border-right:1px solid var(--border)">
-  <div style="padding:18px 20px 16px;border-bottom:1px solid var(--border);flex-shrink:0">
-    <div class="sidebar-wordmark"><span class="stock">Stock</span><span class="buddy">Buddy</span></div>
-    <small style="font-size:11px;color:var(--text-dim);display:block;margin-top:2px">by Fadi</small>
-  </div>
-  <div style="padding:10px;flex:1">
-    <a href="index.html"     class="sidebar-nav-item" data-page="analysis"> <span class="nav-icon">⚡</span> Analysis</a>
-    <a href="research.html"  class="sidebar-nav-item" data-page="research">  <span class="nav-icon">🔭</span> Research</a>
-    <a href="portfolio.html" class="sidebar-nav-item" data-page="portfolio"><span class="nav-icon">📊</span> Portfolio</a>
-    <a href="settings.html"  class="sidebar-nav-item" data-page="settings"> <span class="nav-icon">⚙</span> Settings</a>
-  </div>
-  <div style="padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0">
-    <div class="sidebar-user">
-      <img class="sidebar-avatar" id="sidebarAvatar" style="display:none" alt="avatar" />
-      <div class="sidebar-user-info">
-        <div class="sidebar-user-name"  id="sidebarUserName">—</div>
-        <div class="sidebar-user-email" id="sidebarUserEmail">Loading…</div>
-      </div>
-    </div>
-    <button class="sidebar-signout" onclick="signOut()">Sign out</button>
-  </div>
-</nav>
+<div id="sidebarOverlay"></div>
+<nav id="sidebar"></nav>
 
 <div class="lg:ml-56 flex flex-col min-h-screen">
 
-  <header class="sticky top-0 z-[100] shrink-0 flex items-center justify-between gap-4 px-4 lg:px-7 h-14" style="background:var(--bg2);border-bottom:1px solid var(--border)">
-    <div class="flex items-center gap-3 min-w-0">
-      <button class="hamburger lg:hidden" onclick="toggleSidebar()">☰</button>
-      <h1 class="page-title">📊 Portfolio</h1>
-      <div class="market-pill">
-        <div class="status-dot" id="statusDot"></div>
-        <span id="marketText">—</span>
-      </div>
-    </div>
-    <div class="flex items-center gap-3 shrink-0">
-      <div class="clock mono hidden sm:block" id="clock">--:-- ET</div>
-      <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()">🌙</button>
-    </div>
-  </header>
+  <header id="sb-topbar"></header>
 
   <main class="flex-1 p-4 lg:p-7 pb-24 lg:pb-7 w-full max-w-[1360px]">
 
@@ -101,17 +72,14 @@
   </main>
 </div>
 
-<nav class="bottom-nav fixed bottom-0 inset-x-0 z-[100] flex lg:hidden" style="background:var(--bg2);border-top:1px solid var(--border)">
-  <a href="index.html"     data-page="analysis"> <span class="bnav-icon">⚡</span>Analysis</a>
-  <a href="research.html"  data-page="research">  <span class="bnav-icon">🔭</span>Research</a>
-  <a href="portfolio.html" data-page="portfolio"><span class="bnav-icon">📊</span>Portfolio</a>
-  <a href="settings.html"  data-page="settings"> <span class="bnav-icon">⚙</span>Settings</a>
-</nav>
+<nav id="sb-bottomnav"></nav>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="js/firebase-config.js"></script>
+<script>window.SB_PAGE = 'portfolio';</script>
+<script src="js/nav.js"></script>
 <script src="js/shared.js"></script>
 <script>
 let _portPriceMap   = {};

@@ -1,0 +1,44 @@
+{
+  "name": "StockBuddy",
+  "short_name": "StockBuddy",
+  "description": "AI-powered daily trading intelligence — S&P 500 analysis, watchlist research, and portfolio tracking.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0d12",
+  "theme_color": "#3fb950",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Analysis",
+      "url": "./index.html",
+      "description": "AI intraday trading analysis"
+    },
+    {
+      "name": "Research",
+      "url": "./research.html",
+      "description": "Pre-market watchlist research"
+    },
+    {
+      "name": "Portfolio",
+      "url": "./portfolio.html",
+      "description": "Track your holdings"
+    }
+  ]
+}
