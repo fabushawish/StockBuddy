@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#3fb950" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="StockBuddy" />
   <link rel="apple-touch-icon" href="favicon.svg" />
@@ -265,19 +265,20 @@ function render(analysis) {
   tsEl.classList.add('active');
   const ph = document.getElementById('printSubheader');
   if (ph) ph.textContent = 'S&P 500 Intraday Analysis — Generated ' + ts + ' ET';
-  try { localStorage.setItem('sb_cache', JSON.stringify({ ts: Date.now(), analysis })); } catch(e) {}
 }
 
 function loadCache() {
-  try {
-    const raw = localStorage.getItem('sb_cache');
-    if (!raw) return;
-    const { ts, analysis } = JSON.parse(raw);
-    const ageH = (Date.now() - ts) / 3600000;
-    render(analysis);
-    const label = document.getElementById('timestamp');
-    if (ageH > 6) label.innerHTML += ' <span class="stale-badge">Stale — refresh for latest</span>';
-  } catch(e) {}
+  const cached = getCache(CACHE_KEYS.analysis);
+  if (!cached) return;
+  const ageH = (Date.now() - cached.ts) / 3600000;
+  if (ageH > 8) return;
+  render(cached.data);
+  const label = document.getElementById('timestamp');
+  if (label) {
+    const cacheTime = new Date(cached.ts).toLocaleString('en-US', { timeZone:'America/New_York', timeStyle:'short' });
+    label.innerHTML = 'Cached · ' + cacheTime + ' ET';
+    if (ageH > 4) label.innerHTML += ' <span class="stale-badge">Stale — refresh for latest</span>';
+  }
 }
 
 async function generate() {
@@ -290,6 +291,7 @@ async function generate() {
   const lbl   = document.getElementById('genLabel');
   const icon  = document.getElementById('genIcon');
   btn.disabled = true; lbl.textContent = 'Analysing…'; icon.textContent = '⏳';
+  clearAllCaches();
   startLoading();
   try {
     let priceMap = {}, priceCtx = '';
@@ -319,6 +321,7 @@ async function generate() {
       else { s.live_price = p.price; s.live_dp = p.dp; s.price_is_close = extended; s.is_extended = false; }
     });
     render(analysis);
+    setCache(CACHE_KEYS.analysis, analysis);
   } catch (err) {
     const msg = err.message.startsWith('PARSE_FAIL:')
       ? 'Could not parse response as JSON.\n\nWhat Claude returned:\n' + err.message.slice(11) : err.message;

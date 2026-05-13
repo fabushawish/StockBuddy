@@ -92,7 +92,7 @@ body {
   background: none; border: 1px solid var(--border); border-radius: 6px;
   font-size: 12px; font-weight: 600; color: var(--text-dim);
   cursor: pointer; font-family: inherit; transition: all .15s;
-  margin-top: 8px; width: 100%; text-align: center; padding: 6px 0;
+  margin-top: 12px; width: 100%; text-align: center; padding: 6px 0;
 }
 .sidebar-signout:hover { color: var(--red); border-color: var(--red); background: var(--red-dim); }
 

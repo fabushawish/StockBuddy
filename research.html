@@ -13,7 +13,7 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="apple-touch-icon" href="favicon.svg" />
   <link rel="manifest" href="manifest.json" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#3fb950" />
 </head>
@@ -201,6 +201,7 @@ function watchlistUserPrompt(priceCtx, customWl) {
 async function generateWatchlist() {
   const apiKey = localStorage.getItem('sb_key');
   if (!apiKey) { showError('Please enter your Anthropic API key first.'); return; }
+  clearAllCaches();
   clearError();
   const model = document.getElementById('modelSelect').value;
   const btn   = document.getElementById('wlGenerateBtn');
@@ -263,6 +264,7 @@ async function generateWatchlist() {
       else { s.live_price = p.price; s.live_dp = p.dp; s.price_is_close = true; s.is_extended = false; s.prev_close = p.prevClose||null; }
     });
     renderWatchlist(analysis);
+    setCache(CACHE_KEYS.research, analysis);
   } catch (err) {
     const msg = err.message.startsWith('PARSE_FAIL:')
       ? 'Could not parse response as JSON.\n\nWhat Claude returned:\n' + err.message.slice(11) : err.message;
@@ -287,11 +289,26 @@ function renderWatchlist(analysis) {
   tsEl.classList.add('active');
 }
 
+function loadResearchCache() {
+  const cached = getCache(CACHE_KEYS.research);
+  if (!cached) return;
+  const ageH = (Date.now() - cached.ts) / 3600000;
+  if (ageH > 10) return;
+  renderWatchlist(cached.data);
+  const tsEl = document.getElementById('timestamp');
+  if (tsEl) {
+    const cacheTime = new Date(cached.ts).toLocaleString('en-US', { timeZone:'America/New_York', timeStyle:'short' });
+    tsEl.innerHTML = 'Cached · ' + cacheTime + ' ET';
+    if (ageH > 6) tsEl.innerHTML += ' <span class="stale-badge">Stale — refresh for latest</span>';
+  }
+}
+
 requireAuth(function(user) {
   initSharedUI('research');
   setInterval(tickSession, 1000);
   tickSession();
   renderCustomWatchlist();
+  loadResearchCache();
   const keySavedChip = document.getElementById('keySaved');
   if (keySavedChip && localStorage.getItem('sb_key')) keySavedChip.classList.add('visible');
   const sess = sessionOf(etNow());

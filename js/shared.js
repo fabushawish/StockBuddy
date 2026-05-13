@@ -533,6 +533,31 @@ function wlCardHTML(s) {
 }
 
 // ─────────────────────────────────────────────
+//  ANALYSIS CACHE
+// ─────────────────────────────────────────────
+const CACHE_KEYS = {
+  analysis:  'sb_cache',
+  research:  'sb_cache_research',
+  portfolio: 'sb_cache_portfolio_ai',
+};
+
+function getCache(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function setCache(key, data) {
+  try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); } catch {}
+}
+
+function clearAllCaches() {
+  Object.values(CACHE_KEYS).forEach(k => localStorage.removeItem(k));
+}
+
+// ─────────────────────────────────────────────
 //  JSON REFORMAT FALLBACK
 // ─────────────────────────────────────────────
 async function reformatAsJson(apiKey, model, badText) {

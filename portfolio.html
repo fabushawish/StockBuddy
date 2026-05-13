@@ -13,7 +13,7 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="apple-touch-icon" href="favicon.svg" />
   <link rel="manifest" href="manifest.json" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#3fb950" />
 </head>
@@ -179,9 +179,20 @@ function portfolioSignal(ticker, pnlPct, aiSugs) {
   return { cls:'sig-hold', label:'● HOLD' };
 }
 
+function loadPortfolioAiCache() {
+  const cached = getCache(CACHE_KEYS.portfolio);
+  if (!cached) return;
+  const ageH = (Date.now() - cached.ts) / 3600000;
+  if (ageH > 24) return;
+  _portAiAnalysis = cached.data;
+  const btn = document.getElementById('analysePortBtn');
+  if (btn) btn.textContent = '🔍 Re-analyse';
+}
+
 async function analysePortfolio() {
   const apiKey = localStorage.getItem('sb_key');
   if (!apiKey) { showError('Anthropic API key required. Go to Settings.'); return; }
+  clearAllCaches();
   const portfolio = loadPortfolio();
   const tickers   = Object.keys(portfolio);
   if (!tickers.length) return;
@@ -224,6 +235,7 @@ async function analysePortfolio() {
     }
     _portAiAnalysis = {};
     allAnalyses.forEach(a => { _portAiAnalysis[a.ticker] = { signal:a.signal, confidence:a.confidence_pct, reason:a.reason, risk:a.risk }; });
+    setCache(CACHE_KEYS.portfolio, _portAiAnalysis);
     renderPortfolio(_portPriceMap, _portAiSugs);
   } catch (err) {
     showError('Portfolio analysis failed: ' + err.message);
@@ -316,6 +328,7 @@ async function manualRefreshPrices() { _portPriceMap = {}; await fetchPortfolioP
 
 requireAuth(function(user) {
   initSharedUI('portfolio');
+  loadPortfolioAiCache();
   renderPortfolio({}, []);
   fetchPortfolioPrices();
   const saved = localStorage.getItem('sb_model');
