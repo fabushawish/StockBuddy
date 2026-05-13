@@ -1,4 +1,9 @@
 // ─────────────────────────────────────────────
+//  CONFIG
+// ─────────────────────────────────────────────
+const YAHOO_WORKER_URL = 'https://stockbuddy-prices.shawish-f.workers.dev';
+
+// ─────────────────────────────────────────────
 //  CLOCK & MARKET STATUS
 // ─────────────────────────────────────────────
 function etNow() {
@@ -252,17 +257,19 @@ async function fetchLivePricesYahoo(symbols) {
 
   const fetchBatch = async (batch) => {
     const sym  = batch.join(',');
-    // Raw URL — commas are valid in query params; proxies need single-encoded URL
-    const raw1 = `https://query1.finance.yahoo.com/v8/finance/quote?symbols=${sym}&lang=en-US&region=US`;
-    const raw2 = `https://query2.finance.yahoo.com/v8/finance/quote?symbols=${sym}&lang=en-US&region=US`;
+    const enc  = encodeURIComponent(sym);
+    const yhoo = `https://query1.finance.yahoo.com/v8/finance/quote?symbols=${sym}&lang=en-US&region=US`;
     const urls = [
-      raw2,
-      raw1,
-      `https://corsproxy.io/?${encodeURIComponent(raw1)}`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(raw1)}`,
-      `https://thingproxy.freeboard.io/fetch/${raw1}`,
-      `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(raw1)}`,
-    ];
+      // ① Cloudflare Worker (most reliable — set up at dash.cloudflare.com)
+      YAHOO_WORKER_URL ? `${YAHOO_WORKER_URL}?symbols=${enc}` : null,
+      // ② Direct Yahoo (works locally, blocked on GitHub Pages)
+      `https://query2.finance.yahoo.com/v8/finance/quote?symbols=${sym}&lang=en-US&region=US`,
+      yhoo,
+      // ③ CORS proxies
+      `https://corsproxy.io/?${encodeURIComponent(yhoo)}`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(yhoo)}`,
+      `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(yhoo)}`,
+    ].filter(Boolean);
     for (const url of urls) {
       try {
         const res   = await fetch(url, { signal: AbortSignal.timeout(12000) });
