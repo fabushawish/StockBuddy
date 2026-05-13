@@ -89,8 +89,22 @@ html, body { height: 100%; }
 .sidebar-user-info { flex: 1; min-width: 0; }
 .sidebar-user-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sidebar-user-email { font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sidebar-signout { background: none; border: none; font-size: 11px; color: var(--text-dimmer); cursor: pointer; font-family: inherit; transition: color .15s; margin-top: 6px; width: 100%; text-align: left; padding: 0; }
-.sidebar-signout:hover { color: var(--red); }
+.sidebar-signout {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s;
+  margin-top: 8px;
+  width: 100%;
+  text-align: center;
+  padding: 6px 0;
+}
+.sidebar-signout:hover { color: var(--red); border-color: var(--red); background: var(--red-dim); }
 
 /* ─── Main Column ────────────────────────── */
 .main-column { margin-left: 220px; flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -880,8 +894,20 @@ select:focus { border-color: var(--blue); }
 }
 .portfolio-add-form input:focus { border-color: var(--blue); }
 .portfolio-add-form input::placeholder { color: var(--text-dimmer); }
-.port-ticker-input { width: 90px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; }
-.port-num-input    { width: 110px; }
+.port-ticker-input {
+  width: 90px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 12px; border-radius: 7px; font-size: 13px; outline: none; transition: border-color .15s;
+}
+.port-ticker-input:focus { border-color: var(--blue); }
+.port-ticker-input::placeholder { color: var(--text-dimmer); }
+.port-num-input {
+  width: 110px;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 12px; border-radius: 7px; font-size: 13px; outline: none; transition: border-color .15s;
+}
+.port-num-input:focus { border-color: var(--blue); }
+.port-num-input::placeholder { color: var(--text-dimmer); }
 
 .portfolio-cards-grid {
   display: grid;
