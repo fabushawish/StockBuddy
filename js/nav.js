@@ -28,7 +28,8 @@
       '-translate-x-full lg:translate-x-0 transition-transform duration-300';
     sidebar.innerHTML = `
       <div class="sidebar-brand">
-        <div class="sidebar-wordmark"><span class="stock">Stock</span><span class="buddy">Buddy</span><small><b>by Fadi</b></small></div>
+        <div class="sidebar-wordmark"><span class="stock">Stock</span><span class="buddy">Buddy</span></div>
+        <small><b>by Fadi</b></small>
       </div>
       <div class="sidebar-links">
         <a href="index.html"     class="sidebar-nav-item" data-page="analysis"> <span class="nav-icon">⚡</span> Analysis</a>

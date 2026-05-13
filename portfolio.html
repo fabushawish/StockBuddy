@@ -139,7 +139,14 @@ function removePosition(ticker) {
   const p = loadPortfolio();
   delete p[ticker];
   delete _portAiAnalysis[ticker];
-  savePortfolio(p);
+  localStorage.setItem('sb_portfolio', JSON.stringify(p));
+  // Use FieldValue.delete() with dot-notation path — the only reliable way to
+  // remove a key from a Firestore map field (merge:true does NOT deep-delete).
+  if (sbDb && sbUser) {
+    sbDb.collection('users').doc(sbUser.uid).update({
+      [`portfolio.${ticker}`]: firebase.firestore.FieldValue.delete(),
+    }).catch(e => console.warn('Firestore delete failed:', e.message));
+  }
   renderPortfolio(_portPriceMap, _portAiSugs);
 }
 
