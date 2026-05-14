@@ -57,7 +57,7 @@
           <span id="genIcon"><i class="fa-solid fa-bolt"></i></span>
           <span id="genLabel">Generate Analysis</span>
         </button>
-        <button class="btn-watchlist" id="watchlistBtn" onclick="window.location.href='research.html'" style="display:none">
+        <button class="btn-watchlist" id="watchlistBtn" onclick="generateWatchlist()" style="display:none">
           <span id="wlIcon"><i class="fa-solid fa-eye"></i></span>
           <span id="wlLabel">Research Opens</span>
         </button>
@@ -104,6 +104,18 @@
 
     <div class="timestamp" id="timestamp"></div>
 
+    <!-- Inline S&P 500 Watchlist (Research Opens) -->
+    <div class="watchlist-section" id="wlSection">
+      <div class="watchlist-header">
+        <div>
+          <div class="watchlist-title" id="wlTitle"><i class="fa-solid fa-eye"></i> Tomorrow's Open Watchlist</div>
+          <div class="watchlist-sub" id="wlSummary"></div>
+        </div>
+        <div class="watchlist-catalysts" id="wlCatalysts"></div>
+      </div>
+      <div id="wlCards"></div>
+    </div>
+
   </main>
 </div>
 
@@ -149,6 +161,8 @@ function applyKeySaved(saved) {
   if (chip) chip.classList.toggle('visible', saved);
   const genBtn = document.getElementById('genBtn');
   if (genBtn) genBtn.disabled = !saved;
+  const wlBtn = document.getElementById('watchlistBtn');
+  if (wlBtn) wlBtn.disabled = !saved;
 }
 
 function showError(msg) { const el = document.getElementById('errorBox'); el.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ' + msg; el.classList.add('active'); }
@@ -160,6 +174,7 @@ function startLoading() {
   document.getElementById('overviewBox').classList.remove('active');
   document.getElementById('themesRow').style.display = 'none';
   document.getElementById('timestamp').classList.remove('active');
+  document.getElementById('wlSection').classList.remove('active');
   document.getElementById('stepsEl').innerHTML = '';
   updateLoad('Starting…');
 }
@@ -333,6 +348,159 @@ async function generate() {
   }
 }
 
+function systemWatchlistPrompt() {
+  return `You are an expert stock researcher screening the S&P 500 for the best open setups.
+
+Step 1: Search the web for today's market news, earnings, catalysts, and overnight/after-hours movers across the S&P 500.
+Step 2: Identify the 6-10 strongest setups for the next market open — any S&P 500 stock qualifies.
+Step 3: Reply with ONLY valid JSON wrapped in <json_data> tags. No other text. No markdown. No explanation.
+
+The JSON must follow this exact structure:
+<json_data>
+{"date":"YYYY-MM-DD","research_summary":"2-3 sentences on the overall setup","key_catalysts":["catalyst1","catalyst2"],"watchlist":[{"ticker":"AAPL","company":"Apple Inc","sector":"Technology","thesis":"Why this is worth watching","catalyst":"Specific catalyst","buy_trigger":"Exact condition before entering, e.g. holds above $182 in first 5 min on volume","entry_point":"$XXX.XX","first_target":"$XXX.XX","stop_loss":"$XXX.XX","risk_reward":"1:2","confidence":"HIGH","confidence_pct":88,"pre_market_signal":"What to check before 9:30 AM ET"}]}
+</json_data>
+
+Hard rules:
+- S&P 500 stocks only — no ETFs, no non-index stocks
+- Include only picks with confidence_pct ≥ 85% — omit weaker setups
+- Minimum 5, maximum 10 picks
+- All price fields must be exact dollar values like "$182.45"
+- Tight stops.
+- Output ONLY the <json_data> block — nothing before, nothing after`;
+}
+
+function watchlistUserPrompt(priceCtx) {
+  const etNow_ = etNow();
+  const sess = sessionOf(etNow_);
+  const isPremarket = sess === 'premarket';
+  const today = etNow_.toLocaleDateString('en-US', { timeZone:'America/New_York', weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  const tomorrow = new Date(etNow_.getTime() + 86400000).toLocaleDateString('en-US', { timeZone:'America/New_York', weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  const priceLabel = isPremarket
+    ? `PRE-MARKET PRICES as of ${today} (anchor entry levels to these):`
+    : `AFTER-HOURS PRICES as of ${today} (anchor entry levels to these):`;
+  const prices = priceCtx ? `\n${priceLabel}\n${priceCtx}\n` : '\n[No live price feed — search web for current prices]\n';
+  const customWl = loadCustomWatchlist();
+  const customSection = customWl.length ? `\nPRIORITY TICKERS (always include if compelling setup): ${customWl.join(', ')}\n` : '';
+  if (isPremarket) {
+    return `TODAY IS ${today.toUpperCase()}. Pre-market — market has NOT opened yet. Build a watchlist for TODAY's open (${today}).\n${prices}${customSection}\nSearch for: overnight news, gap-up/gap-down setups forming now, pre-market earnings reactions, analyst upgrades published this morning, unusual pre-market volume across S&P 500.\n\nPick the 6-10 strongest S&P 500 setups for today's open. For each, define a buy_trigger — exact confirmation to wait for in the first 5 minutes after 9:30 AM ET. Only picks with ≥85% confidence.`;
+  }
+  return `TODAY IS ${today.toUpperCase()}. Market is closed. Build a watchlist for TOMORROW's open (${tomorrow}).\n${prices}${customSection}\nSearch for: after-hours earnings reactions today (${today}), analyst calls published today, macro events scheduled for tomorrow, futures direction tonight.\n\nPick the 6-10 strongest S&P 500 setups for tomorrow's open. For each, define a buy_trigger — exact confirmation to wait for in the first 5 minutes after 9:30 AM ET. Only picks with ≥85% confidence.`;
+}
+
+async function generateWatchlist() {
+  const apiKey = localStorage.getItem('sb_key');
+  if (!apiKey) { showError('Please enter your Anthropic API key first.'); return; }
+  clearAllCaches();
+  clearError();
+  const model = document.getElementById('modelSelect').value;
+  const btn   = document.getElementById('watchlistBtn');
+  const lbl   = document.getElementById('wlLabel');
+  const icon  = document.getElementById('wlIcon');
+  btn.disabled = true; lbl.textContent = 'Researching…'; icon.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+  startLoading();
+  try {
+    let priceMap = {}, priceCtx = '';
+    updateLoad('<i class="fa-solid fa-satellite-dish"></i> Fetching live prices…');
+    const customWl   = loadCustomWatchlist();
+    const allSymbols = [...new Set([...SP500_TICKERS, ...customWl])];
+    const prices     = await fetchLivePricesYahoo(allSymbols);
+    prices.forEach(p => { priceMap[p.ticker] = p; });
+    priceCtx = buildPriceContext(prices);
+    const wlSess = sessionOf(etNow());
+    updateLoad(wlSess === 'premarket'
+      ? '<i class="fa-solid fa-eye"></i> Scanning S&P 500 for today\'s open…'
+      : '<i class="fa-solid fa-eye"></i> Scanning S&P 500 for tomorrow\'s open…');
+    let messages = [{ role:'user', content: watchlistUserPrompt(priceCtx) }];
+    const MAX_TURNS = 12;
+    let responseData;
+    for (let turn = 0; turn < MAX_TURNS; turn++) {
+      let res;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'web-search-2025-03-05','anthropic-dangerous-direct-browser-access':'true' },
+          body: JSON.stringify({ model, max_tokens:8000, tool_choice:{type:'auto',disable_parallel_tool_use:true}, tools:[{type:'web_search_20250305',name:'web_search'}], system:systemWatchlistPrompt(), messages }),
+        });
+        if (res.status !== 429 && res.status !== 529) break;
+        const wait = parseInt(res.headers.get('retry-after') || '60', 10);
+        for (let s = wait; s > 0; s--) { updateLoad(`<i class="fa-solid fa-clock"></i> Rate limit — retrying in ${s}s…`); await new Promise(r => setTimeout(r, 1000)); }
+      }
+      if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+      const data = await res.json();
+      if (data.type === 'error') throw new Error(data.error?.message || 'API error');
+      if (data.stop_reason === 'end_turn') { responseData = data; break; }
+      if (data.stop_reason === 'tool_use') {
+        const results = data.content.filter(b=>b.type==='tool_use').map(b=>({type:'tool_result',tool_use_id:b.id,content:[]}));
+        const assistantContent = data.content.filter(b=>b.type!=='tool_result');
+        messages = [messages[0],{role:'assistant',content:assistantContent},...(results.length?[{role:'user',content:results}]:[])];
+        continue;
+      }
+      responseData = data; break;
+    }
+    if (!responseData) throw new Error('No response received. Please try again.');
+    updateLoad('<i class="fa-solid fa-circle-check"></i> Building watchlist…');
+    const text = extractText(responseData);
+    if (!text.trim()) throw new Error('Empty response — please try again.');
+    let analysis;
+    try { analysis = sanitizeParsed(parseAnalysis(text)); }
+    catch (parseErr) {
+      if (!parseErr.message.startsWith('PARSE_FAIL:')) throw parseErr;
+      updateLoad('<i class="fa-solid fa-triangle-exclamation"></i> Reformatting response…');
+      const fixedText = await reformatAsJson(apiKey, model, text);
+      analysis = sanitizeParsed(parseAnalysis(fixedText));
+    }
+    (analysis.watchlist || []).forEach(s => {
+      const p = priceMap[s.ticker]; if (!p) return;
+      if (p.extPrice != null) { s.live_price = p.extPrice; s.live_dp = p.extDp||0; s.price_is_close = false; s.is_extended = true; s.ext_session = wlSess; s.prev_close = p.prevClose||null; }
+      else { s.live_price = p.price; s.live_dp = p.dp; s.price_is_close = true; s.is_extended = false; s.prev_close = p.prevClose||null; }
+    });
+    renderWatchlistInline(analysis, wlSess);
+    setCache(CACHE_KEYS.wlInline, analysis);
+  } catch (err) {
+    const msg = err.message.startsWith('PARSE_FAIL:')
+      ? 'Could not parse response as JSON.\n\nWhat Claude returned:\n' + err.message.slice(11) : err.message;
+    showError(msg);
+  } finally {
+    stopLoading();
+    btn.disabled = false;
+    const finalSess = sessionOf(etNow());
+    lbl.textContent = finalSess === 'premarket' ? "Research Today's Open" : "Research Tomorrow's Open";
+    icon.innerHTML = '<i class="fa-solid fa-eye"></i>';
+  }
+}
+
+function renderWatchlistInline(analysis, wlSess) {
+  const isPremarket = wlSess === 'premarket';
+  document.getElementById('wlTitle').innerHTML = isPremarket
+    ? '<i class="fa-solid fa-eye"></i> Today\'s Open Watchlist'
+    : '<i class="fa-solid fa-eye"></i> Tomorrow\'s Open Watchlist';
+  document.getElementById('wlSummary').textContent = analysis.research_summary || '';
+  document.getElementById('wlCatalysts').innerHTML = (analysis.key_catalysts || []).map(c => `<span class="catalyst-tag">${c}</span>`).join('');
+  const wlCards = analysis.watchlist || [];
+  document.getElementById('wlCards').innerHTML = `<div class="wl-cards-grid">${wlCards.map(wlCardHTML).join('')}</div>`;
+  staggerCards(document.getElementById('wlCards'));
+  document.getElementById('wlSection').classList.add('active');
+  const ts = new Date().toLocaleString('en-US', { timeZone:'America/New_York', dateStyle:'full', timeStyle:'medium' });
+  const tsEl = document.getElementById('timestamp');
+  tsEl.textContent = 'Watchlist generated: ' + ts + ' ET';
+  tsEl.classList.add('active');
+}
+
+function loadWlInlineCache() {
+  const cached = getCache(CACHE_KEYS.wlInline);
+  if (!cached) return;
+  const ageH = (Date.now() - cached.ts) / 3600000;
+  if (ageH > 10) return;
+  const wlSess = sessionOf(etNow());
+  renderWatchlistInline(cached.data, wlSess);
+  const tsEl = document.getElementById('timestamp');
+  if (tsEl) {
+    const cacheTime = new Date(cached.ts).toLocaleString('en-US', { timeZone:'America/New_York', timeStyle:'short' });
+    tsEl.innerHTML = 'Cached · ' + cacheTime + ' ET';
+    if (ageH > 6) tsEl.innerHTML += ' <span class="stale-badge">Stale — refresh for latest</span>';
+  }
+}
+
 document.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !document.getElementById('genBtn').disabled) generate();
 });
@@ -343,6 +511,7 @@ requireAuth(function(user) {
   tickSession();
   applyKeySaved(!!localStorage.getItem('sb_key'));
   loadCache();
+  loadWlInlineCache();
   const saved = localStorage.getItem('sb_model');
   if (saved) { const sel = document.getElementById('modelSelect'); if (sel) sel.value = saved; }
 });

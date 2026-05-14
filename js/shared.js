@@ -558,6 +558,7 @@ const CACHE_KEYS = {
   analysis:  'sb_cache',
   research:  'sb_cache_research',
   portfolio: 'sb_cache_portfolio_ai',
+  wlInline:  'sb_cache_wl_inline',
 };
 
 function getCache(key) {
