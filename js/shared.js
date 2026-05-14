@@ -180,6 +180,7 @@ function applyTheme(name) {
   localStorage.setItem('sb_theme', name);
   const btn = document.getElementById('themeToggle');
   if (btn) btn.innerHTML = name === 'light' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
+  if (typeof renderPortfolio === 'function') renderPortfolio(_portPriceMap, _portAiSugs);
 }
 
 // ─────────────────────────────────────────────

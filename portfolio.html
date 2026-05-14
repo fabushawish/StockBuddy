@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/app.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { fontFamily: { mono: ['"JetBrains Mono"', 'monospace'] } } } }</script>
   <script>(function(){var t=localStorage.getItem('sb_theme')||'dark';document.documentElement.setAttribute('data-theme',t);})()</script>
@@ -72,6 +73,26 @@
           <button class="btn btn-ghost"   onclick="toggleAddForm()">Cancel</button>
         </div>
         <div id="portfolioGlance" class="portfolio-glance" style="display:none"></div>
+        <div id="portfolioCharts" style="display:none">
+          <div class="port-charts-header" onclick="toggleCharts()">
+            <span class="port-charts-title"><i class="fa-solid fa-chart-simple"></i> Performance Charts</span>
+            <span id="chartsChevron" class="portfolio-chevron"><i class="fa-solid fa-chevron-down"></i></span>
+          </div>
+          <div id="chartsBody" style="display:none">
+            <div class="port-charts-grid">
+              <div class="port-chart-box">
+                <div class="port-chart-label">Allocation</div>
+                <canvas id="allocChart"></canvas>
+              </div>
+              <div class="port-chart-box">
+                <div class="port-chart-label">Return by Position</div>
+                <div id="roiChartWrap" style="position:relative">
+                  <canvas id="roiChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div id="portfolioCards"></div>
       </div>
     </div>
@@ -93,6 +114,122 @@ let _portPriceMap   = {};
 let _portAiSugs     = [];
 let _portAiAnalysis = {};
 let _portSort       = 'value-desc';
+let _allocChart      = null;
+let _roiChart        = null;
+let _chartsExpanded  = false;
+let _lastChartData   = [];
+
+function getCSSVar(v) {
+  return getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+}
+
+function toggleCharts() {
+  _chartsExpanded = !_chartsExpanded;
+  const body    = document.getElementById('chartsBody');
+  const chevron = document.getElementById('chartsChevron');
+  body.style.display    = _chartsExpanded ? 'block' : 'none';
+  chevron.innerHTML     = _chartsExpanded
+    ? '<i class="fa-solid fa-chevron-up"></i>'
+    : '<i class="fa-solid fa-chevron-down"></i>';
+  if (_chartsExpanded) {
+    renderPortfolioCharts(_lastChartData);
+  } else {
+    if (_allocChart) { _allocChart.destroy(); _allocChart = null; }
+    if (_roiChart)   { _roiChart.destroy();   _roiChart   = null; }
+  }
+}
+
+function renderPortfolioCharts(data) {
+  const el = document.getElementById('portfolioCharts');
+  if (!data.length) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+
+  const PALETTE  = ['#06b6d4','#38bdf8','#818cf8','#34d399','#fb923c','#f472b6','#a78bfa','#22d3ee','#4ade80','#fbbf24','#e879f9','#f97316'];
+  const textDim  = getCSSVar('--text-dim');
+  const bg2      = getCSSVar('--bg2');
+  const gridCol  = getCSSVar('--border');
+
+  if (_allocChart) { _allocChart.destroy(); _allocChart = null; }
+  if (_roiChart)   { _roiChart.destroy();   _roiChart   = null; }
+
+  // ── Allocation donut ──────────────────────────────
+  _allocChart = new Chart(document.getElementById('allocChart'), {
+    type: 'doughnut',
+    data: {
+      labels: data.map(d => d.ticker),
+      datasets: [{
+        data:            data.map(d => parseFloat(d.value.toFixed(2))),
+        backgroundColor: data.map((_, i) => PALETTE[i % PALETTE.length]),
+        borderColor:     bg2,
+        borderWidth:     2,
+        hoverBorderWidth: 3,
+      }],
+    },
+    options: {
+      responsive: true,
+      cutout: '60%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color: textDim, font: { size: 11, weight: '600' }, padding: 10, boxWidth: 10, boxHeight: 10 },
+        },
+        tooltip: {
+          callbacks: {
+            label(ctx) {
+              const val = ctx.parsed;
+              const tot = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              return ` $${val.toFixed(2)} (${(val / tot * 100).toFixed(1)}%)`;
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // ── ROI horizontal bar ────────────────────────────
+  const sorted   = [...data].sort((a, b) => b.roi - a.roi);
+  const roiWrap  = document.getElementById('roiChartWrap');
+  roiWrap.style.height = Math.max(160, sorted.length * 34) + 'px';
+
+  _roiChart = new Chart(document.getElementById('roiChart'), {
+    type: 'bar',
+    data: {
+      labels: sorted.map(d => d.ticker),
+      datasets: [{
+        data:            sorted.map(d => parseFloat(d.roi.toFixed(2))),
+        backgroundColor: sorted.map(d => d.roi >= 0 ? 'rgba(16,185,129,.65)' : 'rgba(244,63,94,.65)'),
+        borderColor:     sorted.map(d => d.roi >= 0 ? '#10b981' : '#f43f5e'),
+        borderWidth:     1,
+        borderRadius:    4,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label(ctx) { return ` ${ctx.parsed.x >= 0 ? '+' : ''}${ctx.parsed.x.toFixed(2)}%`; },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid:   { color: gridCol },
+          ticks:  { color: textDim, callback: v => v + '%', font: { size: 11 } },
+          border: { color: 'transparent' },
+        },
+        y: {
+          grid:   { display: false },
+          ticks:  { color: textDim, font: { family: '"JetBrains Mono"', size: 12, weight: '700' } },
+          border: { color: 'transparent' },
+        },
+      },
+    },
+  });
+}
 
 function handleSort(val) {
   _portSort = val;
@@ -343,6 +480,22 @@ function renderPortfolio(priceMap, aiSugs) {
   } else {
     glanceEl.style.display = 'none';
     subEl.textContent = `${tickers.length} holdings · Cost basis: $${totalCost.toFixed(2)}`;
+  }
+
+  // Charts
+  _lastChartData = tickers.map(t => {
+    const p = _portPriceMap[t];
+    if (!p) return null;
+    const cur = p.extPrice ?? p.price;
+    const { shares, avgCost } = portfolio[t];
+    return { ticker: t, value: shares * cur, roi: (cur - avgCost) / avgCost * 100 };
+  }).filter(Boolean);
+  const chartsEl = document.getElementById('portfolioCharts');
+  if (_lastChartData.length) {
+    chartsEl.style.display = 'block';
+    if (_chartsExpanded) renderPortfolioCharts(_lastChartData);
+  } else {
+    chartsEl.style.display = 'none';
   }
 }
 

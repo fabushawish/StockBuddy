@@ -789,6 +789,61 @@ select:focus { border-color: var(--blue); }
 .edit-form-actions { display: flex; gap: 8px; margin-top: 4px; }
 
 
+/* ─── Portfolio Charts ──────────────────────────────── */
+#portfolioCharts { margin-bottom: 16px; }
+
+.port-charts-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         10px 14px;
+  background:      var(--bg3);
+  border:          1px solid var(--border);
+  border-radius:   8px;
+  cursor:          pointer;
+  margin-bottom:   1px;
+  transition:      background .15s;
+  user-select:     none;
+}
+.port-charts-header:hover { background: var(--bg4); }
+
+.port-charts-title {
+  font-size:      11px;
+  font-weight:    700;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  color:          var(--text-dim);
+  display:        flex;
+  align-items:    center;
+  gap:            8px;
+}
+
+#chartsBody { padding-top: 10px; }
+
+.port-charts-grid {
+  display:               grid;
+  grid-template-columns: 1fr 1fr;
+  gap:                   12px;
+}
+@media (max-width: 700px) { .port-charts-grid { grid-template-columns: 1fr; } }
+
+.port-chart-box {
+  background:    var(--bg3);
+  border:        1px solid var(--border);
+  border-radius: 8px;
+  padding:       16px 18px;
+}
+
+.port-chart-label {
+  font-size:      9px;
+  font-weight:    700;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  color:          var(--text-dimmer);
+  margin-bottom:  8px;
+}
+
+
 /* ─── Portfolio Glance Stats ────────────────────────── */
 .portfolio-glance {
   flex-wrap:     wrap;
