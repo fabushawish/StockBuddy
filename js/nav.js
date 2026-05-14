@@ -31,10 +31,10 @@
         <div class="sidebar-wordmark"><span class="stock">Stock</span><span class="buddy">Buddy</span></div>
       </div>
       <div class="sidebar-links">
-        <a href="index.html"     class="sidebar-nav-item" data-page="analysis"> <i class="fa-solid fa-bolt nav-icon"></i> Analysis</a>
-        <a href="research.html"  class="sidebar-nav-item" data-page="research">  <i class="fa-solid fa-eye nav-icon"></i> Watchlist</a>
-        <a href="portfolio.html" class="sidebar-nav-item" data-page="portfolio"><i class="fa-solid fa-chart-pie nav-icon"></i> Portfolio</a>
-        <a href="settings.html"  class="sidebar-nav-item" data-page="settings"> <i class="fa-solid fa-gear nav-icon"></i> Settings</a>
+        <a href="#analysis"  class="sidebar-nav-item" data-page="analysis"> <i class="fa-solid fa-bolt nav-icon"></i> Analysis</a>
+        <a href="#research"  class="sidebar-nav-item" data-page="research">  <i class="fa-solid fa-eye nav-icon"></i> Watchlist</a>
+        <a href="#portfolio" class="sidebar-nav-item" data-page="portfolio"><i class="fa-solid fa-chart-pie nav-icon"></i> Portfolio</a>
+        <a href="#settings"  class="sidebar-nav-item" data-page="settings"> <i class="fa-solid fa-gear nav-icon"></i> Settings</a>
       </div>
       <div class="sidebar-footer-inner">
         <div class="sidebar-user">
@@ -73,9 +73,9 @@
   if (bottomNav) {
     bottomNav.className = 'bottom-nav fixed bottom-0 inset-x-0 z-[100] flex lg:hidden';
     bottomNav.innerHTML = `
-      <a href="index.html"     data-page="analysis"> <span class="bnav-icon"><i class="fa-solid fa-bolt"></i></span>Analysis</a>
-      <a href="research.html"  data-page="research">  <span class="bnav-icon"><i class="fa-solid fa-eye"></i></span>Watchlist</a>
-      <a href="portfolio.html" data-page="portfolio"><span class="bnav-icon"><i class="fa-solid fa-chart-pie"></i></span>Portfolio</a>
-      <a href="settings.html"  data-page="settings"> <span class="bnav-icon"><i class="fa-solid fa-gear"></i></span>Settings</a>`;
+      <a href="#analysis"  data-page="analysis"> <span class="bnav-icon"><i class="fa-solid fa-bolt"></i></span>Analysis</a>
+      <a href="#research"  data-page="research">  <span class="bnav-icon"><i class="fa-solid fa-eye"></i></span>Watchlist</a>
+      <a href="#portfolio" data-page="portfolio"><span class="bnav-icon"><i class="fa-solid fa-chart-pie"></i></span>Portfolio</a>
+      <a href="#settings"  data-page="settings"> <span class="bnav-icon"><i class="fa-solid fa-gear"></i></span>Settings</a>`;
   }
 })();

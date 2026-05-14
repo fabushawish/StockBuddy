@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>StockBuddy — Analysis</title>
+  <title>StockBuddy</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#06b6d4" />
@@ -15,6 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/app.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { fontFamily: { mono: ['"JetBrains Mono"', 'monospace'] } } } }</script>
   <script>(function(){var t=localStorage.getItem('sb_theme')||'dark';document.documentElement.setAttribute('data-theme',t);})()</script>
@@ -27,94 +28,327 @@
 <div class="lg:ml-56 flex flex-col min-h-screen">
   <header id="sb-topbar"></header>
 
-  <main class="flex-1 p-4 lg:p-7 pb-24 lg:pb-7 w-full max-w-[1360px]">
+  <main class="flex-1 p-4 lg:p-7 pb-24 lg:pb-7 w-full">
 
-    <div class="print-header">StockBuddy — Daily Trading Intelligence</div>
-    <div class="print-subheader" id="printSubheader">S&amp;P 500 Intraday Analysis</div>
+    <!-- ═══════════════════════════════════════════
+         VIEW: ANALYSIS
+    ════════════════════════════════════════════ -->
+    <div id="view-analysis" class="spa-view max-w-[1360px]">
 
-    <div class="no-key-banner" id="noKeyBanner" style="display:none">
-      <i class="fa-solid fa-triangle-exclamation"></i> No Anthropic API key — <a href="settings.html">go to Settings</a> to add your key.
-    </div>
+      <div class="print-header">StockBuddy — Daily Trading Intelligence</div>
+      <div class="print-subheader" id="printSubheader">S&amp;P 500 Intraday Analysis</div>
 
-    <!-- Action Bar -->
-    <div class="action-bar">
-      <div class="action-left">
-        <div class="action-session-title" id="sessionTitle">Loading…</div>
-        <div class="action-session-desc"  id="sessionDesc">Detecting session</div>
+      <div class="no-key-banner" id="noKeyBanner" style="display:none">
+        <i class="fa-solid fa-triangle-exclamation"></i> No Anthropic API key — <a href="#settings">go to Settings</a> to add your key.
       </div>
-      <div class="action-right">
-        <div class="chip-anthro" id="keySaved">
-          <span>Anthropic</span>
-          <button onclick="window.location.href='settings.html'">Change</button>
+
+      <div class="action-bar">
+        <div class="action-left">
+          <div class="action-session-title" id="sessionTitle">Loading…</div>
+          <div class="action-session-desc"  id="sessionDesc">Detecting session</div>
         </div>
-        <span class="session-badge morning" id="sessionBadge">—</span>
-        <select id="modelSelect">
-          <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — Fast</option>
-          <option value="claude-sonnet-4-6">Sonnet 4.6 — Balanced</option>
-          <option value="claude-opus-4-7">Opus 4.7 — Deep</option>
-        </select>
-        <button class="btn-generate" id="genBtn" onclick="generate()" disabled>
-          <span id="genIcon"><i class="fa-solid fa-bolt"></i></span>
-          <span id="genLabel">Generate Analysis</span>
-        </button>
-        <button class="btn-watchlist" id="watchlistBtn" onclick="generateWatchlist()" style="display:none">
-          <span id="wlIcon"><i class="fa-solid fa-eye"></i></span>
-          <span id="wlLabel">Research Opens</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="error-box" id="errorBox"></div>
-
-    <div class="loading-box" id="loadingBox">
-      <div class="spinner"></div>
-      <div class="loading-status"><em id="loadMsg">Initialising…</em></div>
-      <div id="stepsEl"></div>
-    </div>
-
-    <!-- Key Themes — bullet list -->
-    <div id="themesRow" class="themes-box">
-      <div class="themes-heading">Today's Themes</div>
-      <ul id="themesList" class="themes-list"></ul>
-    </div>
-
-    <!-- Market Overview -->
-    <div class="overview-box" id="overviewBox">
-      <div class="overview-label">Market Overview</div>
-      <div class="overview-text" id="overviewText"></div>
-    </div>
-
-    <!-- Results -->
-    <div class="results" id="results">
-      <div>
-        <div class="col-header">
-          <div class="col-title buy"><i class="fa-solid fa-arrow-trend-up"></i> BUY</div>
-          <div class="col-count" id="buyCount">—</div>
+        <div class="action-right">
+          <div class="chip-anthro" id="keySaved">
+            <span>Anthropic</span>
+            <button onclick="SpaRouter.navigate('settings')">Change</button>
+          </div>
+          <span class="session-badge morning" id="sessionBadge">—</span>
+          <select id="modelSelect">
+            <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — Fast</option>
+            <option value="claude-sonnet-4-6">Sonnet 4.6 — Balanced</option>
+            <option value="claude-opus-4-7">Opus 4.7 — Deep</option>
+          </select>
+          <button class="btn-generate" id="genBtn" onclick="generate()" disabled>
+            <span id="genIcon"><i class="fa-solid fa-bolt"></i></span>
+            <span id="genLabel">Generate Analysis</span>
+          </button>
+          <button class="btn-watchlist" id="watchlistBtn" onclick="generateWatchlist()" disabled style="display:none">
+            <span id="wlIcon"><i class="fa-solid fa-eye"></i></span>
+            <span id="wlLabel">Research Opens</span>
+          </button>
         </div>
-        <div id="buyCards"></div>
       </div>
-      <div>
-        <div class="col-header">
-          <div class="col-title sell"><i class="fa-solid fa-arrow-trend-down"></i> SELL / SHORT</div>
-          <div class="col-count" id="sellCount">—</div>
-        </div>
-        <div id="sellCards"></div>
+
+      <div class="error-box" id="errorBox"></div>
+
+      <div class="loading-box" id="loadingBox">
+        <div class="spinner"></div>
+        <div class="loading-status"><em id="loadMsg">Initialising…</em></div>
+        <div id="stepsEl"></div>
       </div>
-    </div>
 
-    <div class="timestamp" id="timestamp"></div>
+      <div id="themesRow" class="themes-box">
+        <div class="themes-heading">Today's Themes</div>
+        <ul id="themesList" class="themes-list"></ul>
+      </div>
 
-    <!-- Inline S&P 500 Watchlist (Research Opens) -->
-    <div class="watchlist-section" id="wlSection">
-      <div class="watchlist-header">
+      <div class="overview-box" id="overviewBox">
+        <div class="overview-label">Market Overview</div>
+        <div class="overview-text" id="overviewText"></div>
+      </div>
+
+      <div class="results" id="results">
         <div>
-          <div class="watchlist-title" id="wlTitle"><i class="fa-solid fa-eye"></i> Tomorrow's Open Watchlist</div>
-          <div class="watchlist-sub" id="wlSummary"></div>
+          <div class="col-header">
+            <div class="col-title buy"><i class="fa-solid fa-arrow-trend-up"></i> BUY</div>
+            <div class="col-count" id="buyCount">—</div>
+          </div>
+          <div id="buyCards"></div>
         </div>
-        <div class="watchlist-catalysts" id="wlCatalysts"></div>
+        <div>
+          <div class="col-header">
+            <div class="col-title sell"><i class="fa-solid fa-arrow-trend-down"></i> SELL / SHORT</div>
+            <div class="col-count" id="sellCount">—</div>
+          </div>
+          <div id="sellCards"></div>
+        </div>
       </div>
-      <div id="wlCards"></div>
-    </div>
+
+      <div class="timestamp" id="timestamp"></div>
+
+      <div class="watchlist-section" id="wlSection">
+        <div class="watchlist-header">
+          <div>
+            <div class="watchlist-title" id="wlTitle"><i class="fa-solid fa-eye"></i> Tomorrow's Open Watchlist</div>
+            <div class="watchlist-sub" id="wlSummary"></div>
+          </div>
+          <div class="watchlist-catalysts" id="wlCatalysts"></div>
+        </div>
+        <div id="wlCards"></div>
+      </div>
+
+    </div><!-- /view-analysis -->
+
+    <!-- ═══════════════════════════════════════════
+         VIEW: RESEARCH / WATCHLIST
+    ════════════════════════════════════════════ -->
+    <div id="view-research" class="spa-view max-w-[1360px]" style="display:none">
+
+      <div class="custom-wl-section" id="customWlSection">
+        <div class="custom-wl-header">
+          <div class="custom-wl-title"><i class="fa-solid fa-star"></i> My Watchlist</div>
+          <div class="custom-wl-sub">Extra tickers included in every research alongside S&amp;P 500</div>
+        </div>
+        <div class="custom-wl-input-row">
+          <input class="port-ticker-input" id="customTickerInput" placeholder="e.g. TSLA" autocomplete="off"
+                 onkeydown="if(event.key==='Enter')addCustomTicker()" />
+          <button class="btn btn-ghost" onclick="addCustomTicker()"><i class="fa-solid fa-plus"></i> Add</button>
+        </div>
+        <div id="customWlTickers" class="custom-wl-chips"></div>
+      </div>
+
+      <div class="action-bar">
+        <div class="action-left">
+          <div class="action-session-title" id="sessionTitle">Loading…</div>
+          <div class="action-session-desc"  id="sessionDesc">Detecting session</div>
+        </div>
+        <div class="action-right">
+          <div class="chip-anthro" id="keySaved">
+            <span>Anthropic</span>
+            <button onclick="SpaRouter.navigate('settings')">Change</button>
+          </div>
+          <span class="session-badge morning" id="sessionBadge">—</span>
+          <select id="modelSelect">
+            <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — Fast</option>
+            <option value="claude-sonnet-4-6">Sonnet 4.6 — Balanced</option>
+            <option value="claude-opus-4-7">Opus 4.7 — Deep</option>
+          </select>
+          <button class="btn-watchlist" id="wlGenerateBtn" onclick="generateWatchlist()" disabled style="display:none">
+            <span id="wlIcon"><i class="fa-solid fa-eye"></i></span>
+            <span id="wlLabel">Research Opens</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="error-box" id="errorBox"></div>
+
+      <div class="loading-box" id="loadingBox">
+        <div class="spinner"></div>
+        <div class="loading-status"><em id="loadMsg">Initialising…</em></div>
+        <div id="stepsEl"></div>
+      </div>
+
+      <div class="watchlist-section" id="watchlistSection">
+        <div class="watchlist-header">
+          <div>
+            <div class="watchlist-title"><i class="fa-solid fa-eye"></i> Tomorrow's Open Watchlist</div>
+            <div class="watchlist-sub" id="wlSummary"></div>
+          </div>
+          <div class="watchlist-catalysts" id="wlCatalysts"></div>
+        </div>
+        <div id="wlCards"></div>
+      </div>
+
+      <div class="timestamp" id="timestamp"></div>
+
+    </div><!-- /view-research -->
+
+    <!-- ═══════════════════════════════════════════
+         VIEW: PORTFOLIO
+    ════════════════════════════════════════════ -->
+    <div id="view-portfolio" class="spa-view max-w-[1360px]" style="display:none">
+
+      <div class="error-box" id="errorBox"></div>
+
+      <div class="loading-box" id="loadingBox">
+        <div class="spinner"></div>
+        <div class="loading-status"><em id="loadMsg">Loading…</em></div>
+        <div id="stepsEl"></div>
+      </div>
+
+      <div class="portfolio-section" id="portfolioSection">
+        <div class="portfolio-header" onclick="togglePortfolioCollapse(event)">
+          <div>
+            <div class="portfolio-title"><i class="fa-solid fa-chart-pie"></i> My Portfolio <span id="portfolioChevron" class="portfolio-chevron"><i class="fa-solid fa-chevron-down"></i></span></div>
+            <div class="portfolio-sub" id="portfolioSub">No holdings tracked</div>
+          </div>
+          <div class="portfolio-header-actions" onclick="event.stopPropagation()">
+            <select id="sortSelect" class="portfolio-model-select" onchange="handleSort(this.value)">
+              <option value="value-desc">Value ↓</option>
+              <option value="value-asc">Value ↑</option>
+              <option value="roi-desc">ROI ↓</option>
+              <option value="roi-asc">ROI ↑</option>
+            </select>
+            <select id="modelSelect" class="portfolio-model-select">
+              <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5</option>
+              <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+              <option value="claude-opus-4-7">Opus 4.7</option>
+            </select>
+            <button class="btn btn-ghost" onclick="toggleAddForm()"><i class="fa-solid fa-plus"></i> Add Position</button>
+            <button class="btn btn-ghost" id="refreshPricesBtn" onclick="manualRefreshPrices()"><i class="fa-solid fa-rotate"></i> Prices</button>
+            <button class="btn btn-primary" id="analysePortBtn" onclick="analysePortfolio()"><i class="fa-solid fa-magnifying-glass"></i> Analyse</button>
+          </div>
+        </div>
+        <div id="portfolioBody">
+          <div class="portfolio-add-form" id="addPosForm">
+            <input class="port-ticker-input" id="posTickerInput" placeholder="AAPL" autocomplete="off"
+                   onkeydown="if(event.key==='Enter')addPosition()" />
+            <input class="port-num-input" id="posSharesInput" type="number" placeholder="Shares" min="0.001" step="any"
+                   onkeydown="if(event.key==='Enter')addPosition()" />
+            <input class="port-num-input" id="posCostInput" type="number" placeholder="Avg cost $" min="0.01" step="0.01"
+                   onkeydown="if(event.key==='Enter')addPosition()" />
+            <button class="btn btn-primary" onclick="addPosition()">Add</button>
+            <button class="btn btn-ghost"   onclick="toggleAddForm()">Cancel</button>
+          </div>
+          <div id="portfolioGlance" class="portfolio-glance" style="display:none"></div>
+          <div id="portfolioCharts" style="display:none">
+            <div class="port-charts-header" onclick="toggleCharts()">
+              <span class="port-charts-title"><i class="fa-solid fa-chart-simple"></i> Performance Charts</span>
+              <span id="chartsChevron" class="portfolio-chevron"><i class="fa-solid fa-chevron-down"></i></span>
+            </div>
+            <div id="chartsBody" style="display:none">
+              <div class="port-charts-grid">
+                <div class="port-chart-box">
+                  <div class="port-chart-label">Allocation</div>
+                  <canvas id="allocChart"></canvas>
+                </div>
+                <div class="port-chart-box">
+                  <div class="port-chart-label">Return by Position</div>
+                  <div id="roiChartWrap" style="position:relative">
+                    <canvas id="roiChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="portfolioCards"></div>
+        </div>
+      </div>
+
+    </div><!-- /view-portfolio -->
+
+    <!-- ═══════════════════════════════════════════
+         VIEW: SETTINGS
+    ════════════════════════════════════════════ -->
+    <div id="view-settings" class="spa-view max-w-[860px]" style="display:none">
+
+      <div class="settings-section">
+        <div class="settings-section-title">Anthropic API Key</div>
+        <div class="settings-section-sub">Required for AI analysis. Stored locally on this device — never uploaded to any server.</div>
+        <div id="keyNotSaved">
+          <div class="setup-input-row">
+            <input type="password" id="apiKeyInput" class="api-key-input" placeholder="sk-ant-api03-…" autocomplete="off" />
+            <button class="btn btn-primary" onclick="saveKey()">Connect</button>
+          </div>
+          <div class="settings-hint">
+            Get your API key at <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>
+          </div>
+        </div>
+        <div id="keySavedState" style="display:none">
+          <div class="key-saved-row">
+            <span class="key-saved-badge"><i class="fa-solid fa-circle-check"></i> Connected</span>
+            <button class="btn btn-ghost" onclick="clearKey()">Change Key</button>
+          </div>
+          <div class="key-saved-hint">
+            Key is saved in your browser's local storage. It never leaves your device.
+          </div>
+        </div>
+        <div class="error-box" id="keyErrorBox"></div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Appearance</div>
+        <div class="settings-section-sub">Customise how StockBuddy looks and behaves.</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Theme</div>
+            <div class="settings-desc">Switch between dark and light mode</div>
+          </div>
+          <button class="theme-toggle-btn theme-toggle-settings" id="themeToggleSettings" onclick="toggleThemeSettings()">
+            <span id="themeToggleSettingsLabel">Dark Mode</span>
+          </button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Default Model</div>
+            <div class="settings-desc">Pre-select the AI model used across all pages</div>
+          </div>
+          <select id="defaultModelSelect" onchange="saveDefaultModel(this.value)">
+            <option value="claude-haiku-4-5-20251001">Haiku 4.5 — Fast</option>
+            <option value="claude-sonnet-4-6">Sonnet 4.6 — Balanced</option>
+            <option value="claude-opus-4-7">Opus 4.7 — Deep</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Account &amp; Sync</div>
+        <div class="settings-section-sub">Sign in with Google to sync your portfolio and watchlist across devices via Firebase.</div>
+        <div id="accountSection"></div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Data Management</div>
+        <div class="settings-section-sub">Export or clear your local data.</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Export Portfolio</div>
+            <div class="settings-desc">Download your portfolio as a JSON file</div>
+          </div>
+          <button class="btn btn-ghost" onclick="exportPortfolio()">Export JSON</button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Clear All Data</div>
+            <div class="settings-desc">Removes all locally stored data including portfolio, watchlist, and API keys</div>
+          </div>
+          <button class="btn btn-ghost btn-danger" onclick="clearAllData()">Clear All Data</button>
+        </div>
+        <div class="settings-footer">
+          <div class="settings-footer-meta">
+            StockBuddy v2.0 &nbsp;·&nbsp; Built by Fadi &nbsp;·&nbsp;
+            <a href="https://github.com/fabushawish/" target="_blank" rel="noopener">GitHub</a>
+          </div>
+          <div class="settings-disclaimer">
+            <strong><i class="fa-solid fa-triangle-exclamation"></i> Disclaimer:</strong>
+            StockBuddy is powered by an AI that reads the news and sometimes hallucinates stock tips.
+            Not financial advice. Not legal advice. Not life advice. If you lose money, that's between you and the market.
+            If you make money, holla at your boy ;)<br>Thank you for your attintion to this matter.
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /view-settings -->
 
   </main>
 </div>
@@ -128,392 +362,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 <script src="js/shared.js"></script>
+<script src="js/spa-router.js"></script>
+<script src="js/page-analysis.js"></script>
+<script src="js/page-research.js"></script>
+<script src="js/page-portfolio.js"></script>
+<script src="js/page-settings.js"></script>
 <script>
-function tickSession() {
-  const et   = etNow();
-  const sess = sessionOf(et);
-  const title  = document.getElementById('sessionTitle');
-  const desc   = document.getElementById('sessionDesc');
-  const badge  = document.getElementById('sessionBadge');
-  const labels = {
-    premarket:  ['Pre-Market Morning Brief',   'Before open — research and plan your entries',        'morning',   'Morning Session'],
-    morning:    ['Mid-Session Analysis',        'Market open — track momentum and adjust positions',   'morning',   'Market Open'],
-    afternoon:  ['Afternoon Close Review',      '~30 min to close — final moves and overnight holds',  'afternoon', '3:30 PM Session'],
-    afterhours: ['After-Hours Wrap-Up',         'Market closed — debrief and prep for tomorrow',       'after',     'After Hours'],
-  };
-  const [t, d, cls, bl] = labels[sess];
-  if (title) title.textContent = t;
-  if (desc)  desc.textContent  = d;
-  if (badge) { badge.textContent = bl; badge.className = 'session-badge ' + cls; }
-  const marketClosed = sess === 'afterhours' || sess === 'premarket';
-  const wBtn = document.getElementById('watchlistBtn');
-  const wLbl = document.getElementById('wlLabel');
-  if (wBtn) {
-    wBtn.style.display = marketClosed ? 'flex' : 'none';
-    if (wLbl) wLbl.textContent = sess === 'premarket' ? "Research Today's Open" : "Research Tomorrow's Open";
-  }
-}
-
-function applyKeySaved(saved) {
-  const banner = document.getElementById('noKeyBanner');
-  if (banner) banner.style.display = saved ? 'none' : 'block';
-  const chip = document.getElementById('keySaved');
-  if (chip) chip.classList.toggle('visible', saved);
-  const genBtn = document.getElementById('genBtn');
-  if (genBtn) genBtn.disabled = !saved;
-  const wlBtn = document.getElementById('watchlistBtn');
-  if (wlBtn) wlBtn.disabled = !saved;
-}
-
-function showError(msg) { const el = document.getElementById('errorBox'); el.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ' + msg; el.classList.add('active'); }
-function clearError()   { document.getElementById('errorBox').classList.remove('active'); }
-function updateLoad(msg){ document.getElementById('loadMsg').innerHTML = `<em>${msg}</em>`; }
-function startLoading() {
-  document.getElementById('loadingBox').classList.add('active');
-  document.getElementById('results').classList.remove('active');
-  document.getElementById('overviewBox').classList.remove('active');
-  document.getElementById('themesRow').style.display = 'none';
-  document.getElementById('timestamp').classList.remove('active');
-  document.getElementById('wlSection').classList.remove('active');
-  document.getElementById('stepsEl').innerHTML = '';
-  updateLoad('Starting…');
-}
-function stopLoading() { document.getElementById('loadingBox').classList.remove('active'); }
-
-function systemPrompt() {
-  return `You are an S&P 500 intraday day trader. All trades open and close the same session — no overnight holds.
-
-Step 1: Search the web for today's market news, earnings, and catalysts.
-Step 2: Reply with ONLY valid JSON wrapped in <json_data> tags. No other text before or after. No markdown. No explanation.
-
-The JSON must follow this exact structure:
-<json_data>
-{"date":"YYYY-MM-DD","market_overview":"1-2 sentences","key_themes":["theme1","theme2"],"suggestions":[{"ticker":"AAPL","company":"Apple Inc","action":"BUY","sector":"Technology","reason":"Specific catalyst and setup","entry_point":"$XXX.XX","exit_target":"$XXX.XX","stop_loss":"$XXX.XX","risk_reward":"1:2","confidence":"HIGH","confidence_pct":88,"key_risk":"One sentence risk"}]}
-</json_data>
-
-Hard rules:
-- Return EXACTLY 5 BUY + 5 SELL suggestions (10 total) in the suggestions array
-- S&P 500 stocks only
-- confidence_pct must be 85 or higher for every pick — if you cannot find a pick with ≥85% confidence, replace it with one you can
-- All price fields must be exact dollar values like "$182.45", not ranges
-- Tight stops: 1-2% from entry
-- Output ONLY the <json_data> block — nothing before, nothing after`;
-}
-
-function userPrompt(sess, priceCtx, customWl) {
-  const etNow_ = etNow();
-  const today = etNow_.toLocaleDateString('en-US', { timeZone:'America/New_York', weekday:'long', year:'numeric', month:'long', day:'numeric' });
-  const dayOfWeek = etNow_.toLocaleDateString('en-US', { timeZone:'America/New_York', weekday:'long' });
-  const isMonday = dayOfWeek === 'Monday';
-  const prices = priceCtx
-    ? `\nLIVE PRICES RIGHT NOW — anchor ALL entry/exit/stop levels to these exact prices:\n${priceCtx}\n`
-    : '\n[No live price feed — use your web search to find current prices before setting levels]\n';
-  const customSection = customWl && customWl.length
-    ? `\nADDITIONAL WATCHLIST TICKERS (include analysis for these if relevant): ${customWl.join(', ')}\n` : '';
-  const dateBlock = `TODAY IS ${today.toUpperCase()}. You are generating analysis FOR THIS DATE ONLY.\nDO NOT reference, repeat, or recycle analysis from any previous trading session.\nAll picks, catalysts, and price levels must reflect what is happening TODAY, ${today}.`;
-  if (sess === 'premarket' || sess === 'morning') {
-    const mondayExtra = isMonday ? `\nIt is Monday — search specifically for: weekend earnings reactions, geopolitical/macro news from the weekend, Sunday night futures direction, analyst calls published this morning, any gap-up/gap-down setups driven by weekend news.` : '';
-    return `${dateBlock}\n${prices}${customSection}${mondayExtra}\nSearch for: today's pre-market futures direction, overnight news since yesterday's close, earnings reports due today, economic data releases today, analyst upgrades/downgrades published today, unusual pre-market volume.\n\nGive me 5 BUY + 5 SELL intraday picks for ${today}. All trades must open and close today by 4PM ET. Entry/exit/stop anchored to live prices above. Tight stops (1-2%).`;
-  }
-  if (sess === 'afternoon') {
-    return `${dateBlock}\n${prices}${customSection}\nSearch for: today's (${today}) biggest S&P 500 movers right now, unusual options flow today, any late-breaking catalysts in the last hour, earnings reports due after today's close.\n\n5 BUY (momentum into close) + 5 SELL (fade into close) for the final 30 min of today's session. Close all positions by 4PM ET today. Levels anchored to live prices above.`;
-  }
-  return `${dateBlock}\n${prices}${customSection}\nSearch for: after-hours earnings reactions tonight (${today}), analyst calls out today, macro events scheduled for tomorrow, any breaking news after today's close.\n\n5 BUY + 5 SELL gap-play setups for tomorrow's open based on what happened today, ${today}. All trades close by 4PM ET tomorrow.`;
-}
-
-async function callClaude(apiKey, model, sess, priceCtx, customWl) {
-  let messages = [{ role:'user', content: userPrompt(sess, priceCtx, customWl) }];
-  const MAX_TURNS = 12;
-  for (let turn = 0; turn < MAX_TURNS; turn++) {
-    let res;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'web-search-2025-03-05','anthropic-dangerous-direct-browser-access':'true' },
-        body: JSON.stringify({ model, max_tokens:8000, tool_choice:{type:'auto',disable_parallel_tool_use:true}, tools:[{type:'web_search_20250305',name:'web_search'}], system:systemPrompt(), messages }),
-      });
-      if (res.status !== 429 && res.status !== 529) break;
-      const wait = parseInt(res.headers.get('retry-after') || '60', 10);
-      for (let s = wait; s > 0; s--) { updateLoad(`<i class="fa-solid fa-clock"></i> Rate limit — retrying in ${s}s…`); await new Promise(r => setTimeout(r, 1000)); }
-    }
-    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
-    const data = await res.json();
-    if (data.type === 'error') throw new Error(data.error?.message || 'API error');
-    if (data.stop_reason === 'end_turn') return data;
-    if (data.stop_reason === 'tool_use') {
-      const results = data.content.filter(b=>b.type==='tool_use').map(b=>({type:'tool_result',tool_use_id:b.id,content:[]}));
-      const assistantContent = data.content.filter(b=>b.type!=='tool_result');
-      messages = [messages[0],{role:'assistant',content:assistantContent},...(results.length?[{role:'user',content:results}]:[])];
-      continue;
-    }
-    return data;
-  }
-  throw new Error('Analysis loop exceeded maximum turns. Please try again.');
-}
-
-function render(analysis) {
-  // Themes as bullet list
-  const themesRow  = document.getElementById('themesRow');
-  const themesList = document.getElementById('themesList');
-  themesList.innerHTML = '';
-  (analysis.key_themes || []).forEach(t => {
-    const li = document.createElement('li');
-    li.className = 'theme-item';
-    li.innerHTML = `<span class="theme-bullet">•</span><span>${t}</span>`;
-    themesList.appendChild(li);
-  });
-  if ((analysis.key_themes || []).length) themesRow.style.display = 'block';
-
-  document.getElementById('overviewText').textContent = analysis.market_overview || '';
-  document.getElementById('overviewBox').classList.add('active');
-
-  const buys  = (analysis.suggestions || []).filter(s => s.action === 'BUY');
-  const sells = (analysis.suggestions || []).filter(s => s.action === 'SELL');
-  document.getElementById('buyCount').textContent  = buys.length  + ' picks';
-  document.getElementById('sellCount').textContent = sells.length + ' picks';
-  document.getElementById('buyCards').innerHTML  = buys.map(cardHTML).join('');
-  document.getElementById('sellCards').innerHTML = sells.map(cardHTML).join('');
-  staggerCards(document.getElementById('results'));
-  document.getElementById('results').classList.add('active');
-
-  const ts = new Date().toLocaleString('en-US', { timeZone:'America/New_York', dateStyle:'full', timeStyle:'medium' });
-  const tsEl = document.getElementById('timestamp');
-  tsEl.textContent = 'Analysis generated: ' + ts + ' ET';
-  tsEl.classList.add('active');
-  const ph = document.getElementById('printSubheader');
-  if (ph) ph.textContent = 'S&P 500 Intraday Analysis — Generated ' + ts + ' ET';
-}
-
-function loadCache() {
-  const cached = getCache(CACHE_KEYS.analysis);
-  if (!cached) return;
-  const ageH = (Date.now() - cached.ts) / 3600000;
-  if (ageH > 8) return;
-  render(cached.data);
-  const label = document.getElementById('timestamp');
-  if (label) {
-    const cacheTime = new Date(cached.ts).toLocaleString('en-US', { timeZone:'America/New_York', timeStyle:'short' });
-    label.innerHTML = 'Cached · ' + cacheTime + ' ET';
-    if (ageH > 4) label.innerHTML += ' <span class="stale-badge">Stale — refresh for latest</span>';
-  }
-}
-
-async function generate() {
-  const apiKey = localStorage.getItem('sb_key');
-  if (!apiKey) { showError('Please enter your Anthropic API key first.'); return; }
-  clearError();
-  const model = document.getElementById('modelSelect').value;
-  const sess  = sessionOf(etNow());
-  const btn   = document.getElementById('genBtn');
-  const lbl   = document.getElementById('genLabel');
-  const icon  = document.getElementById('genIcon');
-  btn.disabled = true; lbl.textContent = 'Analysing…'; icon.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-  clearAllCaches();
-  startLoading();
-  try {
-    let priceMap = {}, priceCtx = '';
-    updateLoad('<i class="fa-solid fa-satellite-dish"></i> Fetching live prices…');
-    const customWl   = loadCustomWatchlist();
-    const allSymbols = [...new Set([...SP500_TICKERS, ...customWl])];
-    const prices     = await fetchLivePricesYahoo(allSymbols);
-    prices.forEach(p => { priceMap[p.ticker] = p; });
-    priceCtx = buildPriceContext(prices);
-    updateLoad('<i class="fa-solid fa-globe"></i> Searching news and building analysis…');
-    const data = await callClaude(apiKey, model, sess, priceCtx, customWl);
-    const text = extractText(data);
-    if (!text.trim()) throw new Error('Empty response — please try again.');
-    updateLoad('<i class="fa-solid fa-circle-check"></i> Parsing recommendations…');
-    let analysis;
-    try { analysis = sanitizeParsed(parseAnalysis(text)); }
-    catch (parseErr) {
-      if (!parseErr.message.startsWith('PARSE_FAIL:')) throw parseErr;
-      updateLoad('<i class="fa-solid fa-triangle-exclamation"></i> Reformatting response…');
-      const fixedText = await reformatAsJson(apiKey, model, text);
-      analysis = sanitizeParsed(parseAnalysis(fixedText));
-    }
-    const extended = isExtendedHours();
-    (analysis.suggestions || []).forEach(s => {
-      const p = priceMap[s.ticker]; if (!p) return;
-      if (extended && p.extPrice != null) { s.live_price = p.extPrice; s.live_dp = p.extDp||0; s.price_is_close = false; s.is_extended = true; s.ext_session = sess; }
-      else { s.live_price = p.price; s.live_dp = p.dp; s.price_is_close = extended; s.is_extended = false; }
-    });
-    render(analysis);
-    setCache(CACHE_KEYS.analysis, analysis);
-  } catch (err) {
-    const msg = err.message.startsWith('PARSE_FAIL:')
-      ? 'Could not parse response as JSON.\n\nWhat Claude returned:\n' + err.message.slice(11) : err.message;
-    showError(msg);
-  } finally {
-    stopLoading(); btn.disabled = false; lbl.textContent = 'Refresh Analysis'; icon.innerHTML = '<i class="fa-solid fa-bolt"></i>';
-  }
-}
-
-function systemWatchlistPrompt() {
-  return `You are an expert stock researcher screening the S&P 500 for the best open setups.
-
-Step 1: Search the web for today's market news, earnings, catalysts, and overnight/after-hours movers across the S&P 500.
-Step 2: Identify the 6-10 strongest setups for the next market open — any S&P 500 stock qualifies.
-Step 3: Reply with ONLY valid JSON wrapped in <json_data> tags. No other text. No markdown. No explanation.
-
-The JSON must follow this exact structure:
-<json_data>
-{"date":"YYYY-MM-DD","research_summary":"2-3 sentences on the overall setup","key_catalysts":["catalyst1","catalyst2"],"watchlist":[{"ticker":"AAPL","company":"Apple Inc","sector":"Technology","thesis":"Why this is worth watching","catalyst":"Specific catalyst","buy_trigger":"Exact condition before entering, e.g. holds above $182 in first 5 min on volume","entry_point":"$XXX.XX","first_target":"$XXX.XX","stop_loss":"$XXX.XX","risk_reward":"1:2","confidence":"HIGH","confidence_pct":88,"pre_market_signal":"What to check before 9:30 AM ET"}]}
-</json_data>
-
-Hard rules:
-- S&P 500 stocks only — no ETFs, no non-index stocks
-- Include only picks with confidence_pct ≥ 85% — omit weaker setups
-- Minimum 5, maximum 10 picks
-- All price fields must be exact dollar values like "$182.45"
-- Tight stops.
-- Output ONLY the <json_data> block — nothing before, nothing after`;
-}
-
-function watchlistUserPrompt(priceCtx) {
-  const etNow_ = etNow();
-  const sess = sessionOf(etNow_);
-  const isPremarket = sess === 'premarket';
-  const today = etNow_.toLocaleDateString('en-US', { timeZone:'America/New_York', weekday:'long', year:'numeric', month:'long', day:'numeric' });
-  const tomorrow = new Date(etNow_.getTime() + 86400000).toLocaleDateString('en-US', { timeZone:'America/New_York', weekday:'long', year:'numeric', month:'long', day:'numeric' });
-  const priceLabel = isPremarket
-    ? `PRE-MARKET PRICES as of ${today} (anchor entry levels to these):`
-    : `AFTER-HOURS PRICES as of ${today} (anchor entry levels to these):`;
-  const prices = priceCtx ? `\n${priceLabel}\n${priceCtx}\n` : '\n[No live price feed — search web for current prices]\n';
-  const customWl = loadCustomWatchlist();
-  const customSection = customWl.length ? `\nPRIORITY TICKERS (always include if compelling setup): ${customWl.join(', ')}\n` : '';
-  if (isPremarket) {
-    return `TODAY IS ${today.toUpperCase()}. Pre-market — market has NOT opened yet. Build a watchlist for TODAY's open (${today}).\n${prices}${customSection}\nSearch for: overnight news, gap-up/gap-down setups forming now, pre-market earnings reactions, analyst upgrades published this morning, unusual pre-market volume across S&P 500.\n\nPick the 6-10 strongest S&P 500 setups for today's open. For each, define a buy_trigger — exact confirmation to wait for in the first 5 minutes after 9:30 AM ET. Only picks with ≥85% confidence.`;
-  }
-  return `TODAY IS ${today.toUpperCase()}. Market is closed. Build a watchlist for TOMORROW's open (${tomorrow}).\n${prices}${customSection}\nSearch for: after-hours earnings reactions today (${today}), analyst calls published today, macro events scheduled for tomorrow, futures direction tonight.\n\nPick the 6-10 strongest S&P 500 setups for tomorrow's open. For each, define a buy_trigger — exact confirmation to wait for in the first 5 minutes after 9:30 AM ET. Only picks with ≥85% confidence.`;
-}
-
-async function generateWatchlist() {
-  const apiKey = localStorage.getItem('sb_key');
-  if (!apiKey) { showError('Please enter your Anthropic API key first.'); return; }
-  clearAllCaches();
-  clearError();
-  const model = document.getElementById('modelSelect').value;
-  const btn   = document.getElementById('watchlistBtn');
-  const lbl   = document.getElementById('wlLabel');
-  const icon  = document.getElementById('wlIcon');
-  btn.disabled = true; lbl.textContent = 'Researching…'; icon.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-  startLoading();
-  try {
-    let priceMap = {}, priceCtx = '';
-    updateLoad('<i class="fa-solid fa-satellite-dish"></i> Fetching live prices…');
-    const customWl   = loadCustomWatchlist();
-    const allSymbols = [...new Set([...SP500_TICKERS, ...customWl])];
-    const prices     = await fetchLivePricesYahoo(allSymbols);
-    prices.forEach(p => { priceMap[p.ticker] = p; });
-    priceCtx = buildPriceContext(prices);
-    const wlSess = sessionOf(etNow());
-    updateLoad(wlSess === 'premarket'
-      ? '<i class="fa-solid fa-eye"></i> Scanning S&P 500 for today\'s open…'
-      : '<i class="fa-solid fa-eye"></i> Scanning S&P 500 for tomorrow\'s open…');
-    let messages = [{ role:'user', content: watchlistUserPrompt(priceCtx) }];
-    const MAX_TURNS = 12;
-    let responseData;
-    for (let turn = 0; turn < MAX_TURNS; turn++) {
-      let res;
-      for (let attempt = 0; attempt < 5; attempt++) {
-        res = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'web-search-2025-03-05','anthropic-dangerous-direct-browser-access':'true' },
-          body: JSON.stringify({ model, max_tokens:8000, tool_choice:{type:'auto',disable_parallel_tool_use:true}, tools:[{type:'web_search_20250305',name:'web_search'}], system:systemWatchlistPrompt(), messages }),
-        });
-        if (res.status !== 429 && res.status !== 529) break;
-        const wait = parseInt(res.headers.get('retry-after') || '60', 10);
-        for (let s = wait; s > 0; s--) { updateLoad(`<i class="fa-solid fa-clock"></i> Rate limit — retrying in ${s}s…`); await new Promise(r => setTimeout(r, 1000)); }
-      }
-      if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
-      const data = await res.json();
-      if (data.type === 'error') throw new Error(data.error?.message || 'API error');
-      if (data.stop_reason === 'end_turn') { responseData = data; break; }
-      if (data.stop_reason === 'tool_use') {
-        const results = data.content.filter(b=>b.type==='tool_use').map(b=>({type:'tool_result',tool_use_id:b.id,content:[]}));
-        const assistantContent = data.content.filter(b=>b.type!=='tool_result');
-        messages = [messages[0],{role:'assistant',content:assistantContent},...(results.length?[{role:'user',content:results}]:[])];
-        continue;
-      }
-      responseData = data; break;
-    }
-    if (!responseData) throw new Error('No response received. Please try again.');
-    updateLoad('<i class="fa-solid fa-circle-check"></i> Building watchlist…');
-    const text = extractText(responseData);
-    if (!text.trim()) throw new Error('Empty response — please try again.');
-    let analysis;
-    try { analysis = sanitizeParsed(parseAnalysis(text)); }
-    catch (parseErr) {
-      if (!parseErr.message.startsWith('PARSE_FAIL:')) throw parseErr;
-      updateLoad('<i class="fa-solid fa-triangle-exclamation"></i> Reformatting response…');
-      const fixedText = await reformatAsJson(apiKey, model, text);
-      analysis = sanitizeParsed(parseAnalysis(fixedText));
-    }
-    (analysis.watchlist || []).forEach(s => {
-      const p = priceMap[s.ticker]; if (!p) return;
-      if (p.extPrice != null) { s.live_price = p.extPrice; s.live_dp = p.extDp||0; s.price_is_close = false; s.is_extended = true; s.ext_session = wlSess; s.prev_close = p.prevClose||null; }
-      else { s.live_price = p.price; s.live_dp = p.dp; s.price_is_close = true; s.is_extended = false; s.prev_close = p.prevClose||null; }
-    });
-    renderWatchlistInline(analysis, wlSess);
-    setCache(CACHE_KEYS.wlInline, analysis);
-  } catch (err) {
-    const msg = err.message.startsWith('PARSE_FAIL:')
-      ? 'Could not parse response as JSON.\n\nWhat Claude returned:\n' + err.message.slice(11) : err.message;
-    showError(msg);
-  } finally {
-    stopLoading();
-    btn.disabled = false;
-    const finalSess = sessionOf(etNow());
-    lbl.textContent = finalSess === 'premarket' ? "Research Today's Open" : "Research Tomorrow's Open";
-    icon.innerHTML = '<i class="fa-solid fa-eye"></i>';
-  }
-}
-
-function renderWatchlistInline(analysis, wlSess) {
-  const isPremarket = wlSess === 'premarket';
-  document.getElementById('wlTitle').innerHTML = isPremarket
-    ? '<i class="fa-solid fa-eye"></i> Today\'s Open Watchlist'
-    : '<i class="fa-solid fa-eye"></i> Tomorrow\'s Open Watchlist';
-  document.getElementById('wlSummary').textContent = analysis.research_summary || '';
-  document.getElementById('wlCatalysts').innerHTML = (analysis.key_catalysts || []).map(c => `<span class="catalyst-tag">${c}</span>`).join('');
-  const wlCards = analysis.watchlist || [];
-  document.getElementById('wlCards').innerHTML = `<div class="wl-cards-grid">${wlCards.map(wlCardHTML).join('')}</div>`;
-  staggerCards(document.getElementById('wlCards'));
-  document.getElementById('wlSection').classList.add('active');
-  const ts = new Date().toLocaleString('en-US', { timeZone:'America/New_York', dateStyle:'full', timeStyle:'medium' });
-  const tsEl = document.getElementById('timestamp');
-  tsEl.textContent = 'Watchlist generated: ' + ts + ' ET';
-  tsEl.classList.add('active');
-}
-
-function loadWlInlineCache() {
-  const cached = getCache(CACHE_KEYS.wlInline);
-  if (!cached) return;
-  const ageH = (Date.now() - cached.ts) / 3600000;
-  if (ageH > 10) return;
-  const wlSess = sessionOf(etNow());
-  renderWatchlistInline(cached.data, wlSess);
-  const tsEl = document.getElementById('timestamp');
-  if (tsEl) {
-    const cacheTime = new Date(cached.ts).toLocaleString('en-US', { timeZone:'America/New_York', timeStyle:'short' });
-    tsEl.innerHTML = 'Cached · ' + cacheTime + ' ET';
-    if (ageH > 6) tsEl.innerHTML += ' <span class="stale-badge">Stale — refresh for latest</span>';
-  }
-}
-
-document.addEventListener('keydown', e => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !document.getElementById('genBtn').disabled) generate();
-});
-
-requireAuth(function(user) {
+requireAuth(function (user) {
   initSharedUI('analysis');
-  setInterval(tickSession, 1000);
-  tickSession();
-  applyKeySaved(!!localStorage.getItem('sb_key'));
-  loadCache();
-  loadWlInlineCache();
-  const saved = localStorage.getItem('sb_model');
-  if (saved) { const sel = document.getElementById('modelSelect'); if (sel) sel.value = saved; }
+  SpaRouter.init(user);
 });
 </script>
 </body>

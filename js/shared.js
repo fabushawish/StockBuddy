@@ -125,6 +125,9 @@ async function syncToFirestore(field, value) {
 // ─────────────────────────────────────────────
 //  SHARED UI INIT
 // ─────────────────────────────────────────────
+let _tickStarted = false;
+let _clickInterceptorAdded = false;
+
 function initSharedUI(currentPage) {
   applyTheme(localStorage.getItem('sb_theme') || 'dark');
   document.querySelectorAll('.sidebar-nav-item[data-page]').forEach(el => {
@@ -133,19 +136,23 @@ function initSharedUI(currentPage) {
   document.querySelectorAll('.bottom-nav a[data-page]').forEach(el => {
     el.classList.toggle('active', el.dataset.page === currentPage);
   });
-  setInterval(tick, 1000);
-  tick();
-
-  // Page exit transition — intercept internal nav link clicks
-  document.addEventListener('click', e => {
-    const a = e.target.closest('a[href]');
-    if (!a) return;
-    const href = a.getAttribute('href');
-    if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('//') || a.target === '_blank') return;
-    e.preventDefault();
-    document.body.classList.add('page-exit');
-    setTimeout(() => { window.location.href = href; }, 160);
-  }, true);
+  if (!_tickStarted) {
+    _tickStarted = true;
+    setInterval(tick, 1000);
+    tick();
+  }
+  if (!_clickInterceptorAdded) {
+    _clickInterceptorAdded = true;
+    document.addEventListener('click', e => {
+      const a = e.target.closest('a[href]');
+      if (!a) return;
+      const href = a.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('//') || a.target === '_blank') return;
+      e.preventDefault();
+      document.body.classList.add('page-exit');
+      setTimeout(() => { window.location.href = href; }, 160);
+    }, true);
+  }
 }
 
 function staggerCards(container) {
@@ -180,7 +187,7 @@ function applyTheme(name) {
   localStorage.setItem('sb_theme', name);
   const btn = document.getElementById('themeToggle');
   if (btn) btn.innerHTML = name === 'light' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
-  if (typeof renderPortfolio === 'function') renderPortfolio(_portPriceMap, _portAiSugs);
+  if (typeof renderPortfolio === 'function') renderPortfolio(window._portPriceMap || {}, window._portAiSugs || []);
 }
 
 // ─────────────────────────────────────────────
