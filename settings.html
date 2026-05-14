@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { fontFamily: { mono: ['"JetBrains Mono"', 'monospace'] } } } }</script>
   <script>(function(){var t=localStorage.getItem('sb_theme')||'dark';document.documentElement.setAttribute('data-theme',t);})()</script>
@@ -15,7 +16,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#3fb950" />
+  <meta name="theme-color" content="#06b6d4" />
 </head>
 <body>
 
@@ -45,7 +46,7 @@
 
       <div id="keySavedState" style="display:none">
         <div class="key-saved-row">
-          <span class="key-saved-badge">✓ Connected</span>
+          <span class="key-saved-badge"><i class="fa-solid fa-circle-check"></i> Connected</span>
           <button class="btn btn-ghost" onclick="clearKey()">Change Key</button>
         </div>
         <div class="key-saved-hint">
@@ -118,7 +119,7 @@
           <a href="https://github.com/fabushawish/" target="_blank" rel="noopener">GitHub</a>
         </div>
         <div class="settings-disclaimer">
-          <strong>⚠ Disclaimer:</strong>
+          <strong><i class="fa-solid fa-triangle-exclamation"></i> Disclaimer:</strong>
           StockBuddy is powered by an AI that reads the news and sometimes hallucinates stock tips.
           Not financial advice. Not legal advice. Not life advice. If you lose money, that's between you and the market.
           If you make money, holla at your boy ;)<br>Thank you for your attintion to this matter.
@@ -143,7 +144,7 @@ function saveKey() {
   const k = document.getElementById('apiKeyInput').value.trim();
   if (!k.startsWith('sk-ant-')) {
     const errEl = document.getElementById('keyErrorBox');
-    errEl.textContent = '⚠ Key must start with sk-ant-';
+    errEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Key must start with sk-ant-';
     errEl.classList.add('active');
     return;
   }

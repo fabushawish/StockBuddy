@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { fontFamily: { mono: ['"JetBrains Mono"', 'monospace'] } } } }</script>
   <script>(function(){var t=localStorage.getItem('sb_theme')||'dark';document.documentElement.setAttribute('data-theme',t);})()</script>
@@ -15,7 +16,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#3fb950" />
+  <meta name="theme-color" content="#06b6d4" />
 </head>
 <body>
 
@@ -39,7 +40,7 @@
     <div class="portfolio-section" id="portfolioSection">
       <div class="portfolio-header" onclick="togglePortfolioCollapse(event)">
         <div>
-          <div class="portfolio-title">📊 My Portfolio <span id="portfolioChevron" class="portfolio-chevron">▼</span></div>
+          <div class="portfolio-title"><i class="fa-solid fa-chart-pie"></i> My Portfolio <span id="portfolioChevron" class="portfolio-chevron"><i class="fa-solid fa-chevron-down"></i></span></div>
           <div class="portfolio-sub" id="portfolioSub">No holdings tracked</div>
         </div>
         <div class="portfolio-header-actions" onclick="event.stopPropagation()">
@@ -54,9 +55,9 @@
             <option value="claude-sonnet-4-6">Sonnet 4.6</option>
             <option value="claude-opus-4-7">Opus 4.7</option>
           </select>
-          <button class="btn btn-ghost" onclick="toggleAddForm()">+ Add Position</button>
-          <button class="btn btn-ghost" id="refreshPricesBtn" onclick="manualRefreshPrices()">↻ Prices</button>
-          <button class="btn btn-primary" id="analysePortBtn" onclick="analysePortfolio()">🔍 Analyse</button>
+          <button class="btn btn-ghost" onclick="toggleAddForm()"><i class="fa-solid fa-plus"></i> Add Position</button>
+          <button class="btn btn-ghost" id="refreshPricesBtn" onclick="manualRefreshPrices()"><i class="fa-solid fa-rotate"></i> Prices</button>
+          <button class="btn btn-primary" id="analysePortBtn" onclick="analysePortfolio()"><i class="fa-solid fa-magnifying-glass"></i> Analyse</button>
         </div>
       </div>
       <div id="portfolioBody">
@@ -98,7 +99,7 @@ function handleSort(val) {
   renderPortfolio(_portPriceMap, _portAiSugs);
 }
 
-function showError(msg) { const el = document.getElementById('errorBox'); el.textContent = '⚠ ' + msg; el.classList.add('active'); }
+function showError(msg) { const el = document.getElementById('errorBox'); el.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ' + msg; el.classList.add('active'); }
 function clearError()   { document.getElementById('errorBox').classList.remove('active'); }
 function updateLoad(msg){ document.getElementById('loadMsg').innerHTML = `<em>${msg}</em>`; }
 function startLoading() { document.getElementById('loadingBox').classList.add('active'); document.getElementById('stepsEl').innerHTML = ''; updateLoad('Loading…'); }
@@ -109,7 +110,7 @@ function togglePortfolioCollapse(e) {
   const body    = document.getElementById('portfolioBody');
   const chevron = document.getElementById('portfolioChevron');
   const collapsed = body.classList.toggle('collapsed');
-  chevron.textContent = collapsed ? '▶' : '▼';
+  chevron.innerHTML = collapsed ? '<i class="fa-solid fa-chevron-right"></i>' : '<i class="fa-solid fa-chevron-down"></i>';
 }
 
 function toggleAddForm() {
@@ -181,21 +182,21 @@ function portfolioSignal(ticker, pnlPct, aiSugs) {
   const ai = _portAiAnalysis[ticker];
   if (ai) {
     const map = {
-      'STRONG BUY':{ cls:'sig-buy',  label:'⚡ STRONG BUY' },
-      'BUY MORE':  { cls:'sig-buy',  label:'▲ BUY MORE'   },
-      'HOLD':      { cls:'sig-hold', label:'● HOLD'        },
-      'REDUCE':    { cls:'sig-cut',  label:'▽ REDUCE'      },
-      'SELL':      { cls:'sig-sell', label:'▼ SELL'        },
+      'STRONG BUY':{ cls:'sig-buy',  label:'<i class="fa-solid fa-bolt"></i> STRONG BUY' },
+      'BUY MORE':  { cls:'sig-buy',  label:'<i class="fa-solid fa-arrow-trend-up"></i> BUY MORE'   },
+      'HOLD':      { cls:'sig-hold', label:'<i class="fa-solid fa-minus"></i> HOLD'                 },
+      'REDUCE':    { cls:'sig-cut',  label:'<i class="fa-solid fa-arrow-down"></i> REDUCE'          },
+      'SELL':      { cls:'sig-sell', label:'<i class="fa-solid fa-arrow-trend-down"></i> SELL'      },
     };
-    return map[ai.signal] || { cls:'sig-hold', label:'● HOLD' };
+    return map[ai.signal] || { cls:'sig-hold', label:'<i class="fa-solid fa-minus"></i> HOLD' };
   }
   const hit = aiSugs.find(s => s.ticker === ticker);
   if (hit) return hit.action === 'BUY'
-    ? { cls:'sig-buy',  label:'▲ BUY MORE — AI PICK' }
-    : { cls:'sig-sell', label:'▼ SELL — AI PICK' };
-  if (pnlPct <= -7)  return { cls:'sig-cut',  label:'⚠ CUT LOSS' };
-  if (pnlPct >= 20)  return { cls:'sig-take', label:'💰 TAKE PROFIT' };
-  return { cls:'sig-hold', label:'● HOLD' };
+    ? { cls:'sig-buy',  label:'<i class="fa-solid fa-arrow-trend-up"></i> BUY MORE — AI PICK' }
+    : { cls:'sig-sell', label:'<i class="fa-solid fa-arrow-trend-down"></i> SELL — AI PICK'   };
+  if (pnlPct <= -7)  return { cls:'sig-cut',  label:'<i class="fa-solid fa-scissors"></i> CUT LOSS'  };
+  if (pnlPct >= 20)  return { cls:'sig-take', label:'<i class="fa-solid fa-coins"></i> TAKE PROFIT' };
+  return { cls:'sig-hold', label:'<i class="fa-solid fa-minus"></i> HOLD' };
 }
 
 function loadPortfolioAiCache() {
@@ -205,7 +206,7 @@ function loadPortfolioAiCache() {
   if (ageH > 24) return;
   _portAiAnalysis = cached.data;
   const btn = document.getElementById('analysePortBtn');
-  if (btn) btn.textContent = '🔍 Re-analyse';
+  if (btn) btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Re-analyse';
 }
 
 async function analysePortfolio() {
@@ -217,7 +218,7 @@ async function analysePortfolio() {
   if (!tickers.length) return;
   const model = document.getElementById('modelSelect').value;
   const btn   = document.getElementById('analysePortBtn');
-  btn.disabled = true; btn.textContent = '🔍 Analysing…';
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Analysing…';
   document.querySelectorAll('.holding-analysis').forEach(el => {
     el.innerHTML = '<span class="holding-conf">Analysing fundamentals…</span>';
   });
@@ -230,7 +231,7 @@ async function analysePortfolio() {
     for (let bi = 0; bi < tickers.length; bi += BATCH_SIZE) {
       const batch    = tickers.slice(bi, bi + BATCH_SIZE);
       const batchNum = Math.floor(bi / BATCH_SIZE) + 1;
-      btn.textContent = totalBatches > 1 ? `🔍 Analysing batch ${batchNum}/${totalBatches}…` : '🔍 Analysing…';
+      btn.innerHTML = totalBatches > 1 ? `<i class="fa-solid fa-magnifying-glass"></i> Analysing batch ${batchNum}/${totalBatches}…` : '<i class="fa-solid fa-magnifying-glass"></i> Analysing…';
       const holdingsList = batch.map(t => {
         const p = _portPriceMap[t];
         const cur = p ? (p.extPrice ?? p.price) : null;
@@ -260,7 +261,7 @@ async function analysePortfolio() {
     showError('Portfolio analysis failed: ' + err.message);
     document.querySelectorAll('.holding-analysis').forEach(el => { el.innerHTML = ''; });
   } finally {
-    btn.disabled = false; btn.textContent = '🔍 Re-analyse';
+    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Re-analyse';
   }
 }
 
@@ -306,7 +307,7 @@ function renderPortfolio(priceMap, aiSugs) {
     const cost = shares * avgCost;
     totalCost += cost;
     let priceHtml, roiRowHtml, footerVal, pnlPct = 0;
-    let signal = { cls:'sig-hold', label:'● HOLD' };
+    let signal = { cls:'sig-hold', label:'<i class="fa-solid fa-minus"></i> HOLD' };
     if (cur) {
       priced++;
       const value = shares * cur;
@@ -326,9 +327,9 @@ function renderPortfolio(priceMap, aiSugs) {
     }
     const ai = _portAiAnalysis[ticker];
     const analysisHtml = ai
-      ? `<div class="holding-analysis"><div class="holding-reason">${ai.reason}</div>${ai.risk?`<div class="holding-risk">⚠ ${ai.risk}</div>`:''}<div class="holding-conf">Confidence: ${ai.confidence}%</div></div>`
+      ? `<div class="holding-analysis"><div class="holding-reason">${ai.reason}</div>${ai.risk?`<div class="holding-risk"><i class="fa-solid fa-triangle-exclamation"></i> ${ai.risk}</div>`:''}<div class="holding-conf">Confidence: ${ai.confidence}%</div></div>`
       : `<div class="holding-analysis"></div>`;
-    return `<div class="holding-card" id="holding-card-${ticker}"><div class="holding-top"><div><div class="holding-ticker">${ticker}</div><div class="holding-meta">${shares} shares &middot; avg $${avgCost.toFixed(2)} &middot; cost $${cost.toFixed(2)}</div></div><span class="sig ${signal.cls}">${signal.label}</span></div><div class="holding-price-row">${priceHtml}</div>${roiRowHtml}${analysisHtml}<div class="holding-footer"><span class="holding-value">${footerVal}</span><div class="holding-footer-actions"><button class="holding-edit" onclick="editPosition('${ticker}')">✎ Edit</button><button class="holding-remove" onclick="removePosition('${ticker}')">✕ Remove</button></div></div></div>`;
+    return `<div class="holding-card" id="holding-card-${ticker}"><div class="holding-top"><div><div class="holding-ticker">${ticker}</div><div class="holding-meta">${shares} shares &middot; avg $${avgCost.toFixed(2)} &middot; cost $${cost.toFixed(2)}</div></div><span class="sig ${signal.cls}">${signal.label}</span></div><div class="holding-price-row">${priceHtml}</div>${roiRowHtml}${analysisHtml}<div class="holding-footer"><span class="holding-value">${footerVal}</span><div class="holding-footer-actions"><button class="holding-edit" onclick="editPosition('${ticker}')"><i class="fa-solid fa-pen"></i> Edit</button><button class="holding-remove" onclick="removePosition('${ticker}')"><i class="fa-solid fa-xmark"></i> Remove</button></div></div></div>`;
   }).join('');
   cardsEl.innerHTML = `<div class="portfolio-cards-grid">${cards}</div>`;
   staggerCards(cardsEl);
@@ -358,9 +359,9 @@ async function fetchPortfolioPrices() {
     rows.forEach(r => { _portPriceMap[r.ticker] = r; });
     renderPortfolio(_portPriceMap, _portAiSugs);
   } catch (e) {
-    if (subEl) subEl.textContent = `⚠ Price fetch failed: ${e.message}`;
+    if (subEl) subEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Price fetch failed: ${e.message}`;
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '↻ Prices'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Prices'; }
   }
 }
 

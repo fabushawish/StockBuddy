@@ -4,14 +4,14 @@
 // ─────────────────────────────────────────────
 (function () {
   const PAGE_TITLES = {
-    analysis:  '⚡ Analysis',
-    research:  '🔭 Watchlist',
-    portfolio: '📊 Portfolio',
-    settings:  '⚙ Settings',
+    analysis:  '<i class="fa-solid fa-bolt"></i> Analysis',
+    research:  '<i class="fa-solid fa-eye"></i> Watchlist',
+    portfolio: '<i class="fa-solid fa-chart-pie"></i> Portfolio',
+    settings:  '<i class="fa-solid fa-gear"></i> Settings',
   };
 
   const page  = window.SB_PAGE || 'analysis';
-  const title = PAGE_TITLES[page] || '⚡ Analysis';
+  const title = PAGE_TITLES[page] || '<i class="fa-solid fa-bolt"></i> Analysis';
 
   // ── Overlay ───────────────────────────────
   const overlay = document.getElementById('sidebarOverlay');
@@ -29,13 +29,12 @@
     sidebar.innerHTML = `
       <div class="sidebar-brand">
         <div class="sidebar-wordmark"><span class="stock">Stock</span><span class="buddy">Buddy</span></div>
-        <small><b>by Fadi</b></small>
       </div>
       <div class="sidebar-links">
-        <a href="index.html"     class="sidebar-nav-item" data-page="analysis"> <span class="nav-icon">⚡</span> Analysis</a>
-        <a href="research.html"  class="sidebar-nav-item" data-page="research">  <span class="nav-icon">🔭</span> Watchlist</a>
-        <a href="portfolio.html" class="sidebar-nav-item" data-page="portfolio"><span class="nav-icon">📊</span> Portfolio</a>
-        <a href="settings.html"  class="sidebar-nav-item" data-page="settings"> <span class="nav-icon">⚙</span> Settings</a>
+        <a href="index.html"     class="sidebar-nav-item" data-page="analysis"> <i class="fa-solid fa-bolt nav-icon"></i> Analysis</a>
+        <a href="research.html"  class="sidebar-nav-item" data-page="research">  <i class="fa-solid fa-eye nav-icon"></i> Watchlist</a>
+        <a href="portfolio.html" class="sidebar-nav-item" data-page="portfolio"><i class="fa-solid fa-chart-pie nav-icon"></i> Portfolio</a>
+        <a href="settings.html"  class="sidebar-nav-item" data-page="settings"> <i class="fa-solid fa-gear nav-icon"></i> Settings</a>
       </div>
       <div class="sidebar-footer-inner">
         <div class="sidebar-user">
@@ -56,7 +55,7 @@
       'sticky top-0 z-[100] shrink-0 flex items-center justify-between gap-4 px-4 lg:px-7 h-14';
     topbar.innerHTML = `
       <div class="flex items-center gap-3 min-w-0">
-        <button class="hamburger lg:hidden" onclick="toggleSidebar()">☰</button>
+        <button class="hamburger lg:hidden" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
         <h1 class="page-title">${title}</h1>
         <div class="market-pill">
           <div class="status-dot" id="statusDot"></div>
@@ -65,7 +64,7 @@
       </div>
       <div class="flex items-center gap-3 shrink-0">
         <div class="clock mono hidden sm:block" id="clock">--:-- ET</div>
-        <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()">🌙</button>
+        <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()"><i class="fa-solid fa-moon"></i></button>
       </div>`;
   }
 
@@ -74,9 +73,9 @@
   if (bottomNav) {
     bottomNav.className = 'bottom-nav fixed bottom-0 inset-x-0 z-[100] flex lg:hidden';
     bottomNav.innerHTML = `
-      <a href="index.html"     data-page="analysis"> <span class="bnav-icon">⚡</span>Analysis</a>
-      <a href="research.html"  data-page="research">  <span class="bnav-icon">🔭</span>Watchlist</a>
-      <a href="portfolio.html" data-page="portfolio"><span class="bnav-icon">📊</span>Portfolio</a>
-      <a href="settings.html"  data-page="settings"> <span class="bnav-icon">⚙</span>Settings</a>`;
+      <a href="index.html"     data-page="analysis"> <span class="bnav-icon"><i class="fa-solid fa-bolt"></i></span>Analysis</a>
+      <a href="research.html"  data-page="research">  <span class="bnav-icon"><i class="fa-solid fa-eye"></i></span>Watchlist</a>
+      <a href="portfolio.html" data-page="portfolio"><span class="bnav-icon"><i class="fa-solid fa-chart-pie"></i></span>Portfolio</a>
+      <a href="settings.html"  data-page="settings"> <span class="bnav-icon"><i class="fa-solid fa-gear"></i></span>Settings</a>`;
   }
 })();

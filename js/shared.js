@@ -179,7 +179,7 @@ function applyTheme(name) {
   else document.documentElement.removeAttribute('data-theme');
   localStorage.setItem('sb_theme', name);
   const btn = document.getElementById('themeToggle');
-  if (btn) btn.textContent = name === 'light' ? '🌙' : '☀️';
+  if (btn) btn.innerHTML = name === 'light' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
 }
 
 // ─────────────────────────────────────────────
@@ -434,7 +434,7 @@ function priceLabelClass(s) {
 }
 function priceChgText(s) {
   const dp = Math.abs(s.live_dp || 0).toFixed(2);
-  const arrow = (s.live_dp || 0) >= 0 ? '▲' : '▼';
+  const arrow = (s.live_dp || 0) >= 0 ? '<i class="fa-solid fa-arrow-up"></i>' : '<i class="fa-solid fa-arrow-down"></i>';
   return s.is_extended ? `${arrow} ${dp}% ext hrs` : `${arrow} ${dp}% prev session`;
 }
 
@@ -487,8 +487,8 @@ function cardHTML(s) {
     </div>
   </div>
   <div class="card-footer">
-    <div class="timeframe-tag">⏱ ${s.timeframe || '—'}${s.risk_reward ? ' &nbsp;·&nbsp; R/R ' + s.risk_reward : ''}</div>
-    ${s.key_risk ? `<div class="risk-note">⚠ ${s.key_risk}</div>` : ''}
+    <div class="timeframe-tag"><i class="fa-regular fa-clock"></i> ${s.timeframe || '—'}${s.risk_reward ? ' &nbsp;·&nbsp; R/R ' + s.risk_reward : ''}</div>
+    ${s.key_risk ? `<div class="risk-note"><i class="fa-solid fa-triangle-exclamation"></i> ${s.key_risk}</div>` : ''}
   </div>
 </div>`;
 }
@@ -526,7 +526,7 @@ function wlCardHTML(s) {
     <div class="wl-catalyst-text">${s.catalyst || '—'}</div>
   </div>
   <div class="wl-trigger-box">
-    <div class="wl-trigger-label">⚡ Buy Trigger — wait for this before entering</div>
+    <div class="wl-trigger-label"><i class="fa-solid fa-bolt"></i> Buy Trigger — wait for this before entering</div>
     <div class="wl-trigger-text">${s.buy_trigger || '—'}</div>
   </div>
   <div class="wl-metrics">

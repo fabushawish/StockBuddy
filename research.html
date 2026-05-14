@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { fontFamily: { mono: ['"JetBrains Mono"', 'monospace'] } } } }</script>
   <script>(function(){var t=localStorage.getItem('sb_theme')||'dark';document.documentElement.setAttribute('data-theme',t);})()</script>
@@ -15,7 +16,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#3fb950" />
+  <meta name="theme-color" content="#06b6d4" />
 </head>
 <body>
 
@@ -30,13 +31,13 @@
 
     <div class="custom-wl-section" id="customWlSection">
       <div class="custom-wl-header">
-        <div class="custom-wl-title">⭐ My Watchlist</div>
+        <div class="custom-wl-title"><i class="fa-solid fa-star"></i> My Watchlist</div>
         <div class="custom-wl-sub">Extra tickers included in every research alongside S&amp;P 500</div>
       </div>
       <div class="custom-wl-input-row">
         <input class="port-ticker-input" id="customTickerInput" placeholder="e.g. TSLA" autocomplete="off"
                onkeydown="if(event.key==='Enter')addCustomTicker()" />
-        <button class="btn btn-ghost" onclick="addCustomTicker()">+ Add</button>
+        <button class="btn btn-ghost" onclick="addCustomTicker()"><i class="fa-solid fa-plus"></i> Add</button>
       </div>
       <div id="customWlTickers" class="custom-wl-chips"></div>
     </div>
@@ -48,7 +49,7 @@
       </div>
       <div class="action-right">
         <div class="chip-anthro" id="keySaved">
-          <span>● Anthropic</span>
+          <span>Anthropic</span>
           <button onclick="window.location.href='settings.html'">Change</button>
         </div>
         <span class="session-badge morning" id="sessionBadge">—</span>
@@ -58,7 +59,7 @@
           <option value="claude-opus-4-7">Opus 4.7 — Deep</option>
         </select>
         <button class="btn-watchlist" id="wlGenerateBtn" onclick="generateWatchlist()" disabled style="display:none">
-          <span id="wlIcon">🔭</span>
+          <span id="wlIcon"><i class="fa-solid fa-eye"></i></span>
           <span id="wlLabel">Research Opens</span>
         </button>
       </div>
@@ -75,7 +76,7 @@
     <div class="watchlist-section" id="watchlistSection">
       <div class="watchlist-header">
         <div>
-          <div class="watchlist-title">🔭 Tomorrow's Open Watchlist</div>
+          <div class="watchlist-title"><i class="fa-solid fa-eye"></i> Tomorrow's Open Watchlist</div>
           <div class="watchlist-sub" id="wlSummary"></div>
         </div>
         <div class="watchlist-catalysts" id="wlCatalysts"></div>
@@ -124,7 +125,7 @@ function tickSession() {
   }
 }
 
-function showError(msg) { const el = document.getElementById('errorBox'); el.textContent = '⚠ ' + msg; el.classList.add('active'); }
+function showError(msg) { const el = document.getElementById('errorBox'); el.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ' + msg; el.classList.add('active'); }
 function clearError()   { document.getElementById('errorBox').classList.remove('active'); }
 function updateLoad(msg){ document.getElementById('loadMsg').innerHTML = `<em>${msg}</em>`; }
 function startLoading() {
@@ -157,7 +158,7 @@ function renderCustomWatchlist() {
   const el   = document.getElementById('customWlTickers');
   if (!el) return;
   el.innerHTML = list.length
-    ? list.map(t => `<span class="custom-ticker-chip">${t}<button onclick="removeCustomTicker('${t}')" title="Remove">×</button></span>`).join('')
+    ? list.map(t => `<span class="custom-ticker-chip">${t}<button onclick="removeCustomTicker('${t}')" title="Remove"><i class="fa-solid fa-xmark"></i></button></span>`).join('')
     : '<span class="wl-company">No custom tickers yet</span>';
 }
 
@@ -207,22 +208,22 @@ async function generateWatchlist() {
   const btn   = document.getElementById('wlGenerateBtn');
   const lbl   = document.getElementById('wlLabel');
   const icon  = document.getElementById('wlIcon');
-  btn.disabled = true; lbl.textContent = 'Researching…'; icon.textContent = '⏳';
+  btn.disabled = true; lbl.textContent = 'Researching…'; icon.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
   startLoading();
   try {
     let priceMap = {}, priceCtx = '';
     const customWl = loadCustomWatchlist();
     if (!customWl.length) {
       showError('Your watchlist is empty — add tickers above before researching.');
-      stopLoading(); btn.disabled = false; lbl.textContent = 'Research Watchlist'; icon.textContent = '🔭';
+      stopLoading(); btn.disabled = false; lbl.textContent = 'Research Watchlist'; icon.innerHTML = '<i class="fa-solid fa-eye"></i>';
       return;
     }
-    updateLoad('📡 Fetching live prices…');
+    updateLoad('<i class="fa-solid fa-satellite-dish"></i> Fetching live prices…');
     const prices = await fetchLivePricesYahoo(customWl);
     prices.forEach(p => { priceMap[p.ticker] = p; });
     priceCtx = buildPriceContext(prices);
     const wlSess = sessionOf(etNow());
-    updateLoad(wlSess === 'premarket' ? '🔭 Researching today\'s open candidates…' : '🔭 Researching tomorrow\'s open candidates…');
+    updateLoad(wlSess === 'premarket' ? '<i class="fa-solid fa-eye"></i> Researching today\'s open candidates…' : '<i class="fa-solid fa-eye"></i> Researching tomorrow\'s open candidates…');
     let messages = [{ role:'user', content: watchlistUserPrompt(priceCtx, customWl) }];
     const MAX_TURNS = 12;
     let responseData;
@@ -236,7 +237,7 @@ async function generateWatchlist() {
         });
         if (res.status !== 429 && res.status !== 529) break;
         const wait = parseInt(res.headers.get('retry-after') || '60', 10);
-        for (let s = wait; s > 0; s--) { updateLoad(`⏳ Rate limit — retrying in ${s}s…`); await new Promise(r => setTimeout(r, 1000)); }
+        for (let s = wait; s > 0; s--) { updateLoad(`<i class="fa-solid fa-clock"></i> Rate limit — retrying in ${s}s…`); await new Promise(r => setTimeout(r, 1000)); }
       }
       if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
       const data = await res.json();
@@ -251,14 +252,14 @@ async function generateWatchlist() {
       responseData = data; break;
     }
     if (!responseData) throw new Error('No response received. Please try again.');
-    updateLoad('✅ Building watchlist…');
+    updateLoad('<i class="fa-solid fa-circle-check"></i> Building watchlist…');
     const text = extractText(responseData);
     if (!text.trim()) throw new Error('Empty response — please try again.');
     let analysis;
     try { analysis = sanitizeParsed(parseAnalysis(text)); }
     catch (parseErr) {
       if (!parseErr.message.startsWith('PARSE_FAIL:')) throw parseErr;
-      updateLoad('⚠ Reformatting response…');
+      updateLoad('<i class="fa-solid fa-triangle-exclamation"></i> Reformatting response…');
       const fixedText = await reformatAsJson(apiKey, model, text);
       analysis = sanitizeParsed(parseAnalysis(fixedText));
     }
@@ -274,13 +275,13 @@ async function generateWatchlist() {
       ? 'Could not parse response as JSON.\n\nWhat Claude returned:\n' + err.message.slice(11) : err.message;
     showError(msg);
   } finally {
-    stopLoading(); btn.disabled = false; lbl.textContent = 'Refresh Watchlist'; icon.textContent = '🔭';
+    stopLoading(); btn.disabled = false; lbl.textContent = 'Refresh Watchlist'; icon.innerHTML = '<i class="fa-solid fa-eye"></i>';
   }
 }
 
 function renderWatchlist(analysis) {
   const isPremarket = sessionOf(etNow()) === 'premarket';
-  document.querySelector('.watchlist-title').textContent = isPremarket ? "🔭 Today's Open Watchlist" : "🔭 Tomorrow's Open Watchlist";
+  document.querySelector('.watchlist-title').innerHTML = isPremarket ? '<i class="fa-solid fa-eye"></i> Today\'s Open Watchlist' : '<i class="fa-solid fa-eye"></i> Tomorrow\'s Open Watchlist';
   document.getElementById('wlSummary').textContent = analysis.research_summary || '';
   const catalystsEl = document.getElementById('wlCatalysts');
   catalystsEl.innerHTML = (analysis.key_catalysts || []).map(c => `<span class="catalyst-tag">${c}</span>`).join('');

@@ -6,7 +6,7 @@
   <title>StockBuddy — Analysis</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#3fb950" />
+  <meta name="theme-color" content="#06b6d4" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="StockBuddy" />
@@ -14,6 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { fontFamily: { mono: ['"JetBrains Mono"', 'monospace'] } } } }</script>
   <script>(function(){var t=localStorage.getItem('sb_theme')||'dark';document.documentElement.setAttribute('data-theme',t);})()</script>
@@ -32,7 +33,7 @@
     <div class="print-subheader" id="printSubheader">S&amp;P 500 Intraday Analysis</div>
 
     <div class="no-key-banner" id="noKeyBanner" style="display:none">
-      ⚠ No Anthropic API key — <a href="settings.html">go to Settings</a> to add your key.
+      <i class="fa-solid fa-triangle-exclamation"></i> No Anthropic API key — <a href="settings.html">go to Settings</a> to add your key.
     </div>
 
     <!-- Action Bar -->
@@ -43,7 +44,7 @@
       </div>
       <div class="action-right">
         <div class="chip-anthro" id="keySaved">
-          <span>● Anthropic</span>
+          <span>Anthropic</span>
           <button onclick="window.location.href='settings.html'">Change</button>
         </div>
         <span class="session-badge morning" id="sessionBadge">—</span>
@@ -53,11 +54,11 @@
           <option value="claude-opus-4-7">Opus 4.7 — Deep</option>
         </select>
         <button class="btn-generate" id="genBtn" onclick="generate()" disabled>
-          <span id="genIcon">⚡</span>
+          <span id="genIcon"><i class="fa-solid fa-bolt"></i></span>
           <span id="genLabel">Generate Analysis</span>
         </button>
         <button class="btn-watchlist" id="watchlistBtn" onclick="window.location.href='research.html'" style="display:none">
-          <span id="wlIcon">🔭</span>
+          <span id="wlIcon"><i class="fa-solid fa-eye"></i></span>
           <span id="wlLabel">Research Opens</span>
         </button>
       </div>
@@ -87,14 +88,14 @@
     <div class="results" id="results">
       <div>
         <div class="col-header">
-          <div class="col-title buy">▲ BUY</div>
+          <div class="col-title buy"><i class="fa-solid fa-arrow-trend-up"></i> BUY</div>
           <div class="col-count" id="buyCount">—</div>
         </div>
         <div id="buyCards"></div>
       </div>
       <div>
         <div class="col-header">
-          <div class="col-title sell">▼ SELL / SHORT</div>
+          <div class="col-title sell"><i class="fa-solid fa-arrow-trend-down"></i> SELL / SHORT</div>
           <div class="col-count" id="sellCount">—</div>
         </div>
         <div id="sellCards"></div>
@@ -150,7 +151,7 @@ function applyKeySaved(saved) {
   if (genBtn) genBtn.disabled = !saved;
 }
 
-function showError(msg) { const el = document.getElementById('errorBox'); el.textContent = '⚠ ' + msg; el.classList.add('active'); }
+function showError(msg) { const el = document.getElementById('errorBox'); el.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ' + msg; el.classList.add('active'); }
 function clearError()   { document.getElementById('errorBox').classList.remove('active'); }
 function updateLoad(msg){ document.getElementById('loadMsg').innerHTML = `<em>${msg}</em>`; }
 function startLoading() {
@@ -218,7 +219,7 @@ async function callClaude(apiKey, model, sess, priceCtx, customWl) {
       });
       if (res.status !== 429 && res.status !== 529) break;
       const wait = parseInt(res.headers.get('retry-after') || '60', 10);
-      for (let s = wait; s > 0; s--) { updateLoad(`⏳ Rate limit — retrying in ${s}s…`); await new Promise(r => setTimeout(r, 1000)); }
+      for (let s = wait; s > 0; s--) { updateLoad(`<i class="fa-solid fa-clock"></i> Rate limit — retrying in ${s}s…`); await new Promise(r => setTimeout(r, 1000)); }
     }
     if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
     const data = await res.json();
@@ -291,27 +292,27 @@ async function generate() {
   const btn   = document.getElementById('genBtn');
   const lbl   = document.getElementById('genLabel');
   const icon  = document.getElementById('genIcon');
-  btn.disabled = true; lbl.textContent = 'Analysing…'; icon.textContent = '⏳';
+  btn.disabled = true; lbl.textContent = 'Analysing…'; icon.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
   clearAllCaches();
   startLoading();
   try {
     let priceMap = {}, priceCtx = '';
-    updateLoad('📡 Fetching live prices…');
+    updateLoad('<i class="fa-solid fa-satellite-dish"></i> Fetching live prices…');
     const customWl   = loadCustomWatchlist();
     const allSymbols = [...new Set([...SP500_TICKERS, ...customWl])];
     const prices     = await fetchLivePricesYahoo(allSymbols);
     prices.forEach(p => { priceMap[p.ticker] = p; });
     priceCtx = buildPriceContext(prices);
-    updateLoad('🌐 Searching news and building analysis…');
+    updateLoad('<i class="fa-solid fa-globe"></i> Searching news and building analysis…');
     const data = await callClaude(apiKey, model, sess, priceCtx, customWl);
     const text = extractText(data);
     if (!text.trim()) throw new Error('Empty response — please try again.');
-    updateLoad('✅ Parsing recommendations…');
+    updateLoad('<i class="fa-solid fa-circle-check"></i> Parsing recommendations…');
     let analysis;
     try { analysis = sanitizeParsed(parseAnalysis(text)); }
     catch (parseErr) {
       if (!parseErr.message.startsWith('PARSE_FAIL:')) throw parseErr;
-      updateLoad('⚠ Reformatting response…');
+      updateLoad('<i class="fa-solid fa-triangle-exclamation"></i> Reformatting response…');
       const fixedText = await reformatAsJson(apiKey, model, text);
       analysis = sanitizeParsed(parseAnalysis(fixedText));
     }
@@ -328,7 +329,7 @@ async function generate() {
       ? 'Could not parse response as JSON.\n\nWhat Claude returned:\n' + err.message.slice(11) : err.message;
     showError(msg);
   } finally {
-    stopLoading(); btn.disabled = false; lbl.textContent = 'Refresh Analysis'; icon.textContent = '⚡';
+    stopLoading(); btn.disabled = false; lbl.textContent = 'Refresh Analysis'; icon.innerHTML = '<i class="fa-solid fa-bolt"></i>';
   }
 }
 
