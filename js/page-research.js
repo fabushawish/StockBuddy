@@ -220,6 +220,88 @@ Hard rules:
     }
   }
 
+  // ── Analyse watchlist (always-available) ─
+  window.analyseWatchlist = async function () {
+    const apiKey = localStorage.getItem('sb_key');
+    if (!apiKey) { showError('Please enter your Anthropic API key first.'); return; }
+    const customWl = loadCustomWatchlist();
+    if (!customWl.length) { showError('Your watchlist is empty — add tickers above before analysing.'); return; }
+    clearError();
+    const model = el('modelSelect').value;
+    const btn   = el('analyseWlBtn');
+    const lbl   = el('analyseWlLabel');
+    const icon  = el('analyseWlIcon');
+    btn.disabled = true;
+    lbl.textContent = 'Analysing…';
+    icon.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    startLoading();
+    try {
+      updateLoad('<i class="fa-solid fa-satellite-dish"></i> Fetching live prices…');
+      const prices   = await fetchLivePricesYahoo(customWl);
+      const priceMap = {};
+      prices.forEach(p => { priceMap[p.ticker] = p; });
+      const priceCtx = buildPriceContext(prices);
+      updateLoad('<i class="fa-solid fa-magnifying-glass"></i> Analysing watchlist…');
+      const today = new Date().toLocaleDateString('en-US', { timeZone:'America/New_York', weekday:'long', year:'numeric', month:'long', day:'numeric' });
+      const sysPrompt = 'You are an expert stock researcher. Analyse ONLY the specific tickers the user provides — do not substitute or add any other stocks.\n\nSearch the web for today\'s news, recent earnings, and catalysts for each ticker. Give a clear trading thesis with entry levels anchored to the current prices provided.\n\nReturn ONLY valid JSON in <json_data> tags:\n<json_data>\n{"date":"YYYY-MM-DD","research_summary":"2-3 sentences overview","key_catalysts":["catalyst1","catalyst2"],"watchlist":[{"ticker":"AAPL","company":"Apple Inc","sector":"Technology","thesis":"Why worth watching","catalyst":"Specific catalyst","buy_trigger":"Exact condition before entering","entry_point":"$XXX.XX","first_target":"$XXX.XX","stop_loss":"$XXX.XX","risk_reward":"1:2","confidence":"HIGH","confidence_pct":88,"pre_market_signal":"What to check at open"}]}\n</json_data>\n\nHard rules:\n- Analyse ONLY the tickers provided — no substitutions\n- Omit tickers with confidence_pct below 70%\n- All price fields must be exact dollar values\n- Output ONLY the <json_data> block';
+      const userMsg = 'TODAY IS ' + today.toUpperCase() + '.\n\nLIVE PRICES:\n' + priceCtx + '\n\nTICKERS TO ANALYSE (ONLY these): ' + customWl.join(', ') + '\n\nSearch for today\'s news and catalysts for each ticker. Anchor all price levels to the live prices above. Give a high-conviction trading thesis for each ticker worth watching (confidence ≥ 70%).';
+      let messages = [{ role:'user', content: userMsg }];
+      const MAX_TURNS = 12;
+      let responseData;
+      for (let turn = 0; turn < MAX_TURNS; turn++) {
+        let res;
+        for (let attempt = 0; attempt < 5; attempt++) {
+          res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'web-search-2025-03-05','anthropic-dangerous-direct-browser-access':'true' },
+            body: JSON.stringify({ model, max_tokens:8000, tool_choice:{type:'auto',disable_parallel_tool_use:true}, tools:[{type:'web_search_20250305',name:'web_search'}], system:sysPrompt, messages }),
+          });
+          if (res.status !== 429 && res.status !== 529) break;
+          const wait = parseInt(res.headers.get('retry-after') || '60', 10);
+          for (let s = wait; s > 0; s--) { updateLoad('<i class="fa-solid fa-clock"></i> Rate limit — retrying in ' + s + 's…'); await new Promise(r => setTimeout(r, 1000)); }
+        }
+        if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || 'HTTP ' + res.status); }
+        const data = await res.json();
+        if (data.type === 'error') throw new Error(data.error?.message || 'API error');
+        if (data.stop_reason === 'end_turn') { responseData = data; break; }
+        if (data.stop_reason === 'tool_use') {
+          const results = data.content.filter(b=>b.type==='tool_use').map(b=>({type:'tool_result',tool_use_id:b.id,content:[]}));
+          const assistantContent = data.content.filter(b=>b.type!=='tool_result');
+          messages = [messages[0],{role:'assistant',content:assistantContent},...(results.length?[{role:'user',content:results}]:[])];
+          continue;
+        }
+        responseData = data; break;
+      }
+      if (!responseData) throw new Error('No response received. Please try again.');
+      updateLoad('<i class="fa-solid fa-circle-check"></i> Building analysis…');
+      const text = extractText(responseData);
+      if (!text.trim()) throw new Error('Empty response — please try again.');
+      let analysis;
+      try { analysis = sanitizeParsed(parseAnalysis(text)); }
+      catch (parseErr) {
+        if (!parseErr.message.startsWith('PARSE_FAIL:')) throw parseErr;
+        updateLoad('<i class="fa-solid fa-triangle-exclamation"></i> Reformatting response…');
+        const fixedText = await reformatAsJson(apiKey, model, text);
+        analysis = sanitizeParsed(parseAnalysis(fixedText));
+      }
+      (analysis.watchlist || []).forEach(s => {
+        const p = priceMap[s.ticker]; if (!p) return;
+        if (p.extPrice != null) { s.live_price = p.extPrice; s.live_dp = p.extDp||0; s.price_is_close = false; s.is_extended = true; s.prev_close = p.prevClose||null; }
+        else { s.live_price = p.price; s.live_dp = p.dp; s.price_is_close = true; s.is_extended = false; s.prev_close = p.prevClose||null; }
+      });
+      renderWatchlist(analysis);
+      setCache(CACHE_KEYS.research, analysis);
+    } catch (err) {
+      const msg = err.message.startsWith('PARSE_FAIL:') ? 'Could not parse response as JSON.\n\nWhat Claude returned:\n' + err.message.slice(11) : err.message;
+      showError(msg);
+    } finally {
+      stopLoading();
+      const b2 = el('analyseWlBtn'); if (b2) b2.disabled = false;
+      const l2 = el('analyseWlLabel'); if (l2) l2.textContent = 'Analyse Watchlist';
+      const i2 = el('analyseWlIcon'); if (i2) i2.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i>';
+    }
+  };
+
   // ── Lifecycle ─────────────────────────────
   let _interval = null;
   let _inited   = false;
@@ -235,10 +317,13 @@ Hard rules:
     applyKeySaved,
     activate(user) {
       initSharedUI('research');
+      const hasKey = !!localStorage.getItem('sb_key');
+      const analyseBtn = el('analyseWlBtn');
+      if (analyseBtn) analyseBtn.disabled = !hasKey;
       if (!_inited) {
         _inited = true;
         const chip = el('keySaved');
-        if (chip && localStorage.getItem('sb_key')) chip.classList.add('visible');
+        if (chip && hasKey) chip.classList.add('visible');
         loadResearchCache();
         const saved = localStorage.getItem('sb_model');
         const sel = el('modelSelect'); if (saved && sel) sel.value = saved;
