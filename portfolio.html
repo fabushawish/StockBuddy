@@ -292,8 +292,11 @@ function editPosition(ticker) {
   const { shares, avgCost } = loadPortfolio()[ticker];
   const card = document.getElementById(`holding-card-${ticker}`);
   card.innerHTML = `
-    <div class="holding-ticker holding-ticker-edit">${ticker}</div>
     <div class="holding-edit-form">
+      <label class="edit-label">Ticker</label>
+      <input class="edit-input" id="edit-ticker-${ticker}" value="${ticker}"
+             oninput="this.value=this.value.toUpperCase()"
+             style="font-family:'JetBrains Mono',monospace;font-weight:700" />
       <label class="edit-label">Shares</label>
       <input class="edit-input" type="number" id="edit-shares-${ticker}" value="${shares}" min="0.001" step="any" />
       <label class="edit-label">Avg cost ($)</label>
@@ -305,12 +308,24 @@ function editPosition(ticker) {
     </div>`;
 }
 
-function saveEdit(ticker) {
-  const shares  = parseFloat(document.getElementById(`edit-shares-${ticker}`).value);
-  const avgCost = parseFloat(document.getElementById(`edit-cost-${ticker}`).value);
-  if (isNaN(shares) || isNaN(avgCost) || shares <= 0 || avgCost <= 0) { showError('Invalid shares or cost.'); return; }
+function saveEdit(oldTicker) {
+  const newTicker = (document.getElementById(`edit-ticker-${oldTicker}`).value || '').trim().toUpperCase();
+  const shares    = parseFloat(document.getElementById(`edit-shares-${oldTicker}`).value);
+  const avgCost   = parseFloat(document.getElementById(`edit-cost-${oldTicker}`).value);
+  if (!newTicker)                                                        { showError('Ticker cannot be empty.'); return; }
+  if (isNaN(shares) || isNaN(avgCost) || shares <= 0 || avgCost <= 0)  { showError('Invalid shares or cost.'); return; }
   const p = loadPortfolio();
-  p[ticker] = { shares, avgCost };
+  if (newTicker !== oldTicker) {
+    if (p[newTicker]) { showError(`${newTicker} already exists in portfolio.`); return; }
+    delete p[oldTicker];
+    delete _portAiAnalysis[oldTicker];
+    if (sbDb && sbUser) {
+      sbDb.collection('users').doc(sbUser.uid).update({
+        [`portfolio.${oldTicker}`]: firebase.firestore.FieldValue.delete(),
+      }).catch(e => console.warn('Firestore delete failed:', e.message));
+    }
+  }
+  p[newTicker] = { shares, avgCost };
   savePortfolio(p);
   renderPortfolio(_portPriceMap, _portAiSugs);
 }
