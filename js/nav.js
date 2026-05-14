@@ -5,7 +5,7 @@
 (function () {
   const PAGE_TITLES = {
     analysis:  '⚡ Analysis',
-    research:  '🔭 Research',
+    research:  '🔭 Watchlist',
     portfolio: '📊 Portfolio',
     settings:  '⚙ Settings',
   };
@@ -33,7 +33,7 @@
       </div>
       <div class="sidebar-links">
         <a href="index.html"     class="sidebar-nav-item" data-page="analysis"> <span class="nav-icon">⚡</span> Analysis</a>
-        <a href="research.html"  class="sidebar-nav-item" data-page="research">  <span class="nav-icon">🔭</span> Research</a>
+        <a href="research.html"  class="sidebar-nav-item" data-page="research">  <span class="nav-icon">🔭</span> Watchlist</a>
         <a href="portfolio.html" class="sidebar-nav-item" data-page="portfolio"><span class="nav-icon">📊</span> Portfolio</a>
         <a href="settings.html"  class="sidebar-nav-item" data-page="settings"> <span class="nav-icon">⚙</span> Settings</a>
       </div>
@@ -75,7 +75,7 @@
     bottomNav.className = 'bottom-nav fixed bottom-0 inset-x-0 z-[100] flex lg:hidden';
     bottomNav.innerHTML = `
       <a href="index.html"     data-page="analysis"> <span class="bnav-icon">⚡</span>Analysis</a>
-      <a href="research.html"  data-page="research">  <span class="bnav-icon">🔭</span>Research</a>
+      <a href="research.html"  data-page="research">  <span class="bnav-icon">🔭</span>Watchlist</a>
       <a href="portfolio.html" data-page="portfolio"><span class="bnav-icon">📊</span>Portfolio</a>
       <a href="settings.html"  data-page="settings"> <span class="bnav-icon">⚙</span>Settings</a>`;
   }

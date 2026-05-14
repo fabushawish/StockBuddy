@@ -353,6 +353,7 @@ select {
   font-size:     13px;
   outline:       none;
   transition:    border-color .15s;
+  padding: 12px 7px !important;
 }
 select:focus { border-color: var(--blue); }
 

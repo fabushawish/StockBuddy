@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>StockBuddy — Research</title>
+  <title>StockBuddy — Watchlist</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/app.css" />
@@ -162,19 +162,19 @@ function renderCustomWatchlist() {
 }
 
 function systemWatchlistPrompt() {
-  return `You are an expert stock researcher building a pre-market watchlist for S&P 500 day traders.
+  return `You are an expert stock researcher. Analyse ONLY the specific tickers the user provides — do not substitute or add any other stocks.
 
-Step 1: Search the web for today's news, overnight earnings, and pre-market catalysts.
+Step 1: Search the web for today's news, recent earnings, and catalysts for each ticker in the list.
 Step 2: Reply with ONLY valid JSON wrapped in <json_data> tags. No other text. No markdown. No explanation.
 
 The JSON must follow this exact structure:
 <json_data>
-{"date":"YYYY-MM-DD","research_summary":"2-3 sentences on the overall setup","key_catalysts":["catalyst1","catalyst2"],"watchlist":[{"ticker":"AAPL","company":"Apple Inc","sector":"Technology","thesis":"Why this is worth buying","catalyst":"Specific catalyst","buy_trigger":"Exact condition before entering, e.g. holds above $182 in first 5 min on volume","entry_point":"$XXX.XX","first_target":"$XXX.XX","stop_loss":"$XXX.XX","risk_reward":"1:2","confidence":"HIGH","confidence_pct":88,"pre_market_signal":"What to check before 9:30 AM ET"}]}
+{"date":"YYYY-MM-DD","research_summary":"2-3 sentences on the overall setup for these tickers","key_catalysts":["catalyst1","catalyst2"],"watchlist":[{"ticker":"AAPL","company":"Apple Inc","sector":"Technology","thesis":"Why this is worth watching","catalyst":"Specific catalyst","buy_trigger":"Exact condition before entering, e.g. holds above $182 in first 5 min on volume","entry_point":"$XXX.XX","first_target":"$XXX.XX","stop_loss":"$XXX.XX","risk_reward":"1:2","confidence":"HIGH","confidence_pct":88,"pre_market_signal":"What to check before 9:30 AM ET"}]}
 </json_data>
 
 Hard rules:
-- 5-7 picks only, BUY side only — focus on S&P 500 stocks and any custom watchlist tickers provided
-- confidence_pct must be 85 or higher for every pick — drop any pick below 85%
+- Include ONLY the tickers the user provides — no substitutions, no additions
+- Omit any ticker with confidence_pct below 85% (fewer entries is fine)
 - All price fields must be exact dollar values like "$182.45"
 - Tight stops: 1-2% from entry
 - Output ONLY the <json_data> block — nothing before, nothing after`;
@@ -190,12 +190,12 @@ function watchlistUserPrompt(priceCtx, customWl) {
   const priceLabel = isPremarket
     ? `PRE-MARKET PRICES as of ${today} (use these to set realistic entry levels for today's open):`
     : `AFTER-HOURS PRICES as of ${today} (use these to set realistic entry levels for tomorrow's open):`;
-  const prices = priceCtx ? `\n${priceLabel}\n${priceCtx}\n` : '\n[No live price feed — use web search for current prices]\n';
-  const customSection = customWl && customWl.length ? `\nMY WATCHLIST (prioritise these tickers if there are setups): ${customWl.join(', ')}\n` : '';
+  const prices     = priceCtx ? `\n${priceLabel}\n${priceCtx}\n` : '\n[No live price feed — use web search for current prices]\n';
+  const tickerList = `\nTICKERS TO ANALYSE (analyse ONLY these — do not add or substitute others): ${customWl.join(', ')}\n`;
   if (isPremarket) {
-    return `TODAY IS ${today.toUpperCase()}. It is pre-market — the market has NOT opened yet. You are building a watchlist for TODAY'S open (${today}).\nDO NOT say "tomorrow" — the open you are researching IS TODAY, ${today}. Do not reference any previous trading session.\n${prices}${customSection}\nSearch for: overnight news and earnings reactions, pre-market futures direction RIGHT NOW for ${today}, analyst calls published this morning, any gap-up or gap-down setups forming before today's open, macro events scheduled for today.\n\nIdentify 5-7 highest-conviction S&P 500 BUY candidates for TODAY's open (${today}). For each, define a specific buy_trigger — the exact confirmation to wait for in the first 5 minutes after 9:30 AM ET before entering. Do NOT blindly buy at the open.`;
+    return `TODAY IS ${today.toUpperCase()}. It is pre-market — the market has NOT opened yet. You are building a watchlist for TODAY'S open (${today}).\nDO NOT say "tomorrow" — the open you are researching IS TODAY, ${today}.\n${prices}${tickerList}\nFor each ticker: search for overnight news, pre-market price action, analyst calls from this morning, gap-up/gap-down setups forming before today's open.\n\nFor each ticker with a compelling setup (confidence ≥ 85%), define a specific buy_trigger — the exact confirmation to wait for in the first 5 minutes after 9:30 AM ET. Skip any ticker with no clear catalyst or below-85% confidence.`;
   }
-  return `TODAY IS ${today.toUpperCase()}. The market is closed for today. You are building a watchlist for TOMORROW's open (${tomorrow}).\nDO NOT recycle or repeat any analysis from previous days. Base everything on news from today, ${today}, and overnight.\n${prices}${customSection}\nSearch for: after-hours earnings reactions from today (${today}), analyst calls published today, macro events scheduled for tomorrow, weekend/overnight news if applicable, futures direction for tomorrow's open, sector rotation signals.\n\nIdentify 5-7 highest-conviction S&P 500 BUY candidates for TOMORROW's open (${tomorrow}). For each, define a specific buy_trigger — the exact confirmation to wait for in the first 5 minutes after 9:30 AM ET before entering. Do NOT blindly buy at the open.`;
+  return `TODAY IS ${today.toUpperCase()}. The market is closed for today. You are building a watchlist for TOMORROW's open (${tomorrow}).\nDo not recycle any analysis from previous days. Base everything on news from today, ${today}.\n${prices}${tickerList}\nFor each ticker: search for after-hours earnings reactions from today (${today}), analyst calls published today, macro events scheduled for tomorrow that affect these stocks, futures direction for tomorrow's open.\n\nFor each ticker with a compelling setup (confidence ≥ 85%), define a specific buy_trigger — the exact confirmation to wait for in the first 5 minutes after 9:30 AM ET. Skip any ticker with no clear catalyst or below-85% confidence.`;
 }
 
 async function generateWatchlist() {
@@ -211,10 +211,14 @@ async function generateWatchlist() {
   startLoading();
   try {
     let priceMap = {}, priceCtx = '';
+    const customWl = loadCustomWatchlist();
+    if (!customWl.length) {
+      showError('Your watchlist is empty — add tickers above before researching.');
+      stopLoading(); btn.disabled = false; lbl.textContent = 'Research Watchlist'; icon.textContent = '🔭';
+      return;
+    }
     updateLoad('📡 Fetching live prices…');
-    const customWl   = loadCustomWatchlist();
-    const allSymbols = [...new Set([...SP500_TICKERS, ...customWl])];
-    const prices     = await fetchLivePricesYahoo(allSymbols);
+    const prices = await fetchLivePricesYahoo(customWl);
     prices.forEach(p => { priceMap[p.ticker] = p; });
     priceCtx = buildPriceContext(prices);
     const wlSess = sessionOf(etNow());
