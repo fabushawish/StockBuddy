@@ -579,33 +579,40 @@ function clearAllCaches() {
 //  JSON REFORMAT FALLBACK
 // ─────────────────────────────────────────────
 async function reformatAsJson(apiKey, model, badText) {
-  // Truncate to avoid token limit issues — JSON is always near the end
-  const truncated = badText.length > 12000 ? badText.slice(-12000) : badText;
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 8000,
-      messages: [{
-        role: 'user',
-        content:
-          'The following stock analysis response could not be parsed as JSON. ' +
-          'Extract all the data and return it as ONLY a valid JSON object wrapped in <json_data> tags. ' +
-          'No explanation, no markdown, no other text — start with <json_data> and end with </json_data>.\n\n' +
-          truncated,
-      }],
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(`Reformat failed (HTTP ${res.status}): ${err.error?.message || res.statusText}`);
+  const truncated = badText.length > 8000 ? badText.slice(-8000) : badText;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 4000,
+        messages: [{
+          role: 'user',
+          content:
+            'The following stock analysis response could not be parsed as JSON. ' +
+            'Extract all the data and return it as ONLY a valid JSON object wrapped in <json_data> tags. ' +
+            'No explanation, no markdown, no other text — start with <json_data> and end with </json_data>.\n\n' +
+            truncated,
+        }],
+      }),
+    });
+    if (res.status === 429 || res.status === 529) {
+      const wait = parseInt(res.headers.get('retry-after') || '60', 10);
+      await new Promise(r => setTimeout(r, wait * 1000));
+      continue;
+    }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`Reformat failed (HTTP ${res.status}): ${err.error?.message || res.statusText}`);
+    }
+    const data = await res.json();
+    return extractText(data);
   }
-  const data = await res.json();
-  return extractText(data);
+  throw new Error('Reformat failed after retries — rate limited. Please wait a moment and try again.');
 }
