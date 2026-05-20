@@ -351,11 +351,19 @@
           const pnlPct = cur ? ((cur - avgCost) / avgCost * 100).toFixed(1) + '%' : 'unknown';
           return t + ': ' + shares + ' shares @ avg $' + avgCost.toFixed(2) + ', current ' + (cur ? '$' + cur.toFixed(2) : 'unknown') + ', P&L ' + pnlPct;
         }).join('\n');
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
-          body: JSON.stringify({ model, max_tokens:4000, system:sysPrompt, messages:[{role:'user',content:'Today: ' + today + '\n\nAnalyse each holding below using your knowledge of fundamentals, earnings trajectory, analyst consensus, and sector context. Give a high-conviction signal for each:\n\n' + holdingsList}] }),
-        });
+        if (bi > 0) await new Promise(r => setTimeout(r, 3000));
+        let res;
+        for (let attempt = 0; attempt < 5; attempt++) {
+          res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+            body: JSON.stringify({ model, max_tokens:4000, system:sysPrompt, messages:[{role:'user',content:'Today: ' + today + '\n\nAnalyse each holding below using your knowledge of fundamentals, earnings trajectory, analyst consensus, and sector context. Give a high-conviction signal for each:\n\n' + holdingsList}] }),
+          });
+          if (res.status !== 429 && res.status !== 529) break;
+          const wait = parseInt(res.headers.get('retry-after') || '60', 10);
+          btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Rate limit — retrying in ' + wait + 's…';
+          await new Promise(r => setTimeout(r, wait * 1000));
+        }
         if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || 'HTTP ' + res.status); }
         const data = await res.json();
         if (data.type === 'error') throw new Error(data.error?.message || 'API error');

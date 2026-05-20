@@ -108,6 +108,31 @@ Hard rules:
     return 'TODAY IS ' + today.toUpperCase() + '. The market is closed for today. You are building a watchlist for TOMORROW\'s open (' + tomorrow + ').\nDo not recycle any analysis from previous days. Base everything on news from today, ' + today + '.\n' + prices + tickerList + '\nFor each ticker: search for after-hours earnings reactions from today (' + today + '), analyst calls published today, macro events scheduled for tomorrow that affect these stocks, futures direction for tomorrow\'s open.\n\nFor each ticker with a compelling setup (confidence ≥ 85%), define a specific buy_trigger — the exact confirmation to wait for in the first 5 minutes after 9:30 AM ET. Skip any ticker with no clear catalyst or below-85% confidence.';
   }
 
+  // Session-agnostic version used by analyseWatchlist (works during market hours too)
+  function watchlistUserPromptAny(priceCtx, customWl) {
+    const etNow_  = etNow();
+    const sess    = sessionOf(etNow_);
+    const today   = etNow_.toLocaleDateString('en-US', { timeZone:'America/New_York', weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    const tomorrow = new Date(etNow_.getTime() + 86400000).toLocaleDateString('en-US', { timeZone:'America/New_York', weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    const tickerList = '\nTICKERS TO ANALYSE (analyse ONLY these — do not add or substitute others): ' + customWl.join(', ') + '\n';
+    let priceLabel, preamble, instructions;
+    if (sess === 'premarket') {
+      priceLabel   = 'PRE-MARKET PRICES as of ' + today + ':';
+      preamble     = 'TODAY IS ' + today.toUpperCase() + '. It is pre-market — the market has NOT opened yet. You are building a watchlist for TODAY\'s open (' + today + ').';
+      instructions = 'For each ticker: search for overnight news, pre-market price action, analyst calls from this morning, gap-up/gap-down setups. Define a specific buy_trigger for the first 5 minutes after 9:30 AM ET. Skip tickers with no clear catalyst or below-85% confidence.';
+    } else if (sess === 'morning' || sess === 'afternoon') {
+      priceLabel   = 'LIVE PRICES as of ' + today + ' (market is currently open — anchor all levels to these):';
+      preamble     = 'TODAY IS ' + today.toUpperCase() + '. The market is currently OPEN. Analyse these tickers for intraday and near-term setups.';
+      instructions = 'For each ticker: search for today\'s news, earnings reactions, analyst upgrades/downgrades, and any intraday catalysts. Define a specific buy_trigger based on current price action. Anchor entry, target, and stop levels to the live prices provided. Skip tickers with no clear catalyst or below-70% confidence.';
+    } else {
+      priceLabel   = 'AFTER-HOURS PRICES as of ' + today + ':';
+      preamble     = 'TODAY IS ' + today.toUpperCase() + '. The market is closed. You are building a watchlist for TOMORROW\'s open (' + tomorrow + '). Base everything on news from today — do not recycle older analysis.';
+      instructions = 'For each ticker: search for after-hours earnings reactions from today, analyst calls published today, macro events scheduled for tomorrow, and futures direction. Define a specific buy_trigger for the first 5 minutes after 9:30 AM ET. Skip tickers with no clear catalyst or below-85% confidence.';
+    }
+    const prices = priceCtx ? '\n' + priceLabel + '\n' + priceCtx + '\n' : '\n[No live price feed — use web search for current prices]\n';
+    return preamble + '\n' + prices + tickerList + '\n' + instructions;
+  }
+
   // ── Render watchlist ──────────────────────
   function renderWatchlist(analysis) {
     const isPremarket = sessionOf(etNow()) === 'premarket';
@@ -242,10 +267,7 @@ Hard rules:
       prices.forEach(p => { priceMap[p.ticker] = p; });
       const priceCtx = buildPriceContext(prices);
       updateLoad('<i class="fa-solid fa-magnifying-glass"></i> Analysing watchlist…');
-      const today = new Date().toLocaleDateString('en-US', { timeZone:'America/New_York', weekday:'long', year:'numeric', month:'long', day:'numeric' });
-      const sysPrompt = 'You are an expert stock researcher. Analyse ONLY the specific tickers the user provides — do not substitute or add any other stocks.\n\nSearch the web for today\'s news, recent earnings, and catalysts for each ticker. Give a clear trading thesis with entry levels anchored to the current prices provided.\n\nReturn ONLY valid JSON in <json_data> tags:\n<json_data>\n{"date":"YYYY-MM-DD","research_summary":"2-3 sentences overview","key_catalysts":["catalyst1","catalyst2"],"watchlist":[{"ticker":"AAPL","company":"Apple Inc","sector":"Technology","thesis":"Why worth watching","catalyst":"Specific catalyst","buy_trigger":"Exact condition before entering","entry_point":"$XXX.XX","first_target":"$XXX.XX","stop_loss":"$XXX.XX","risk_reward":"1:2","confidence":"HIGH","confidence_pct":88,"pre_market_signal":"What to check at open"}]}\n</json_data>\n\nHard rules:\n- Analyse ONLY the tickers provided — no substitutions\n- Omit tickers with confidence_pct below 70%\n- All price fields must be exact dollar values\n- Output ONLY the <json_data> block';
-      const userMsg = 'TODAY IS ' + today.toUpperCase() + '.\n\nLIVE PRICES:\n' + priceCtx + '\n\nTICKERS TO ANALYSE (ONLY these): ' + customWl.join(', ') + '\n\nSearch for today\'s news and catalysts for each ticker. Anchor all price levels to the live prices above. Give a high-conviction trading thesis for each ticker worth watching (confidence ≥ 70%).';
-      let messages = [{ role:'user', content: userMsg }];
+      let messages = [{ role:'user', content: watchlistUserPromptAny(priceCtx, customWl) }];
       const MAX_TURNS = 12;
       let responseData;
       for (let turn = 0; turn < MAX_TURNS; turn++) {
@@ -254,7 +276,7 @@ Hard rules:
           res = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: { 'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'web-search-2025-03-05','anthropic-dangerous-direct-browser-access':'true' },
-            body: JSON.stringify({ model, max_tokens:8000, tool_choice:{type:'auto',disable_parallel_tool_use:true}, tools:[{type:'web_search_20250305',name:'web_search'}], system:sysPrompt, messages }),
+            body: JSON.stringify({ model, max_tokens:8000, tool_choice:{type:'auto',disable_parallel_tool_use:true}, tools:[{type:'web_search_20250305',name:'web_search'}], system:systemWatchlistPrompt(), messages }),
           });
           if (res.status !== 429 && res.status !== 529) break;
           const wait = parseInt(res.headers.get('retry-after') || '60', 10);
